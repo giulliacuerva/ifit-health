@@ -3,6 +3,7 @@ package br.ifsp.demo.domain.usecase;
 import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.exception.RoomScheduleConflictException;
+import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -76,6 +77,25 @@ public class CreateActivityClassUseCaseTest {
 
         assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule))
                 .isInstanceOf(RoomScheduleConflictException.class);
+
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when trainer is booked at the given period")
+    public void shouldNotCreateActivityClassWhenTrainerIsBooked() {
+
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
+        Schedule newSchedule = new Schedule(classDays,LocalTime.of(10, 30),LocalTime.of(11, 30));
+
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule);
+
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(existingActivityClass));
+
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule))
+                .isInstanceOf(TrainerScheduleConflictException.class);
 
     }
 }
