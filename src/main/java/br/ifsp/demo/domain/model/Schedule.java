@@ -17,6 +17,13 @@ public class Schedule {
         this.endTime = endTime;
     }
 
+    public boolean conflictsWith(Schedule otherSchedule) {
+        boolean sameDay = weekdays.stream().anyMatch(otherSchedule.weekdays::contains);
+        if (!sameDay) { return false; }
+
+        return startTime.isBefore(otherSchedule.endTime) && otherSchedule.startTime.isBefore(endTime);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
