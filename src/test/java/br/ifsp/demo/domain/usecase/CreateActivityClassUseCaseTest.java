@@ -3,6 +3,7 @@ package br.ifsp.demo.domain.usecase;
 import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -30,6 +31,8 @@ public class CreateActivityClassUseCaseTest {
     private final UUID trainerId = UUID.randomUUID();
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should return a new ActivityClass when room, sport and trainer are available at the given period")
     public void shouldCreateClassWhenAvailable() {
 
