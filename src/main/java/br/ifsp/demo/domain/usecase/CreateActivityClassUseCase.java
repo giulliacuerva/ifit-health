@@ -4,6 +4,7 @@ import br.ifsp.demo.domain.model.*;
 
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.exception.RoomScheduleConflictException;
+import br.ifsp.demo.exception.RoomTypeConflictException;
 import br.ifsp.demo.exception.TrainerScheduleConflictException;
 
 
@@ -17,10 +18,17 @@ public class CreateActivityClassUseCase {
     public ActivityClass createNewActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule) {
         validateRoomConflict(room, schedule);
         validateTrainerConflict(trainer, schedule);
+        validateRoomType(room, sport);
 
         ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule);
 
         return activityClassRepo.save(activityClass);
+    }
+
+    private void validateRoomType(Room room, Sport sport) {
+        if (!room.getType().equals(sport.getRoomType())) {
+            throw new RoomTypeConflictException("Room type does not match sport requirements");
+        }
     }
 
     private void validateRoomConflict(Room room, Schedule schedule) {

@@ -1,8 +1,10 @@
 package br.ifsp.demo.domain.usecase;
 
 import br.ifsp.demo.domain.model.*;
+import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.exception.RoomScheduleConflictException;
+import br.ifsp.demo.exception.RoomTypeConflictException;
 import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,8 +36,8 @@ public class CreateActivityClassUseCaseTest {
     @BeforeEach
     public void setup() {
         trainer = new Trainer(UUID.randomUUID(), "John Doe");
-        room = new Room(UUID.randomUUID(), "Room A");
-        sport = new Sport(UUID.randomUUID(), "Basketball");
+        room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM);
+        sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
     }
 
     @Test
@@ -116,5 +118,18 @@ public class CreateActivityClassUseCaseTest {
         assertThat(result).isEqualTo(activityClass);
 
         verify(activityClassRepo).save(any(ActivityClass.class));
+    }
+
+    @Test
+    @DisplayName("Should not create a new ActivityClass when room type does not match sport type")
+    void shouldNotCreateANewActivityClassWhenRoomTypeHasConflict(){
+        RoomType sportType = RoomType.POOL;
+        Sport sport = new Sport(UUID.randomUUID(), "Swimming", sportType);
+
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        Schedule schedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
+
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule))
+                .isInstanceOf(RoomTypeConflictException.class);
     }
 }
