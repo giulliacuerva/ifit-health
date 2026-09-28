@@ -94,4 +94,27 @@ public class CreateActivityClassUseCaseTest {
                 .isInstanceOf(TrainerScheduleConflictException.class);
 
     }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should create a new ActivityClass when the schedule is adjacent to an existing class")
+    public void shouldCreateClassWhenScheduleIsAdjacent() {
+
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule);
+
+        Schedule newSchedule = new Schedule(classDays,LocalTime.of(11, 0),LocalTime.of(12, 0));
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, newSchedule);
+
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of(existingActivityClass));
+        when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
+
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule);
+
+        assertThat(result).isEqualTo(activityClass);
+
+        verify(activityClassRepo).save(any(ActivityClass.class));
+    }
 }
