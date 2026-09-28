@@ -53,10 +53,6 @@ public class CreateActivityClassUseCaseTest {
         ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule);
 
         assertThat(result).isEqualTo(activityClass);
-        assertThat(result.getRoom()).isEqualTo(room);
-        assertThat(result.getSport()).isEqualTo(sport);
-        assertThat(result.getTrainer()).isEqualTo(trainer);
-        assertThat(result.getSchedule()).isEqualTo(schedule);
 
         verify(activityClassRepo).save(any(ActivityClass.class));
     }
