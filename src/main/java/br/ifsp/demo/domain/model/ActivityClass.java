@@ -10,13 +10,15 @@ public class ActivityClass {
     private final Sport sport;
     private final Trainer trainer;
     private final Schedule schedule;
+    private final int capacity;
 
-    public ActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule) {
+    public ActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity) {
         id = UUID.randomUUID();
         this.room = room;
         this.sport = sport;
         this.trainer = trainer;
         this.schedule = schedule;
+        this.capacity = capacity;
     }
 
     public UUID getId() {
@@ -39,6 +41,10 @@ public class ActivityClass {
         return schedule;
     }
 
+    public int getCapacity() {
+        return capacity;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -48,11 +54,12 @@ public class ActivityClass {
                 && Objects.equals(room, that.room)
                 && Objects.equals(sport, that.sport)
                 && Objects.equals(trainer, that.trainer)
-                && Objects.equals(schedule, that.schedule);
+                && Objects.equals(schedule, that.schedule)
+                && capacity == that.capacity;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, room, sport, trainer, schedule);
+        return Objects.hash(id, room, sport, trainer, schedule, capacity);
     }
 }

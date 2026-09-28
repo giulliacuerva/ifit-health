@@ -9,11 +9,13 @@ public class Room {
     private final UUID id;
     private final String name;
     private final RoomType type;
+    private final int capacity;
 
-    public Room(UUID id, String name, RoomType type) {
+    public Room(UUID id, String name, RoomType type, int capacity) {
         this.id = id;
         this.name = name;
         this.type = type;
+        this.capacity = capacity;
     }
 
     public RoomType getType() {
@@ -28,16 +30,23 @@ public class Room {
         return name;
     }
 
+    public int getCapacity() {
+        return capacity;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Room room = (Room) o;
-        return Objects.equals(id, room.id) && Objects.equals(name, room.name) && type == room.type;
+        return Objects.equals(id, room.id)
+                && Objects.equals(name, room.name)
+                && type == room.type
+                && capacity == room.capacity;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, type);
+        return Objects.hash(id, name, type, capacity);
     }
 }
