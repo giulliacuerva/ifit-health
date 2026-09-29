@@ -1,5 +1,7 @@
 package br.ifsp.demo.domain.model;
 
+import br.ifsp.demo.exception.InvalidScheduleException;
+
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.Objects;
@@ -12,6 +14,9 @@ public class Schedule {
     private final LocalTime endTime;
 
     public Schedule(Set<DayOfWeek> weekdays,LocalTime startTime,LocalTime endTime) {
+        if (!endTime.isAfter(startTime)) {
+            throw new InvalidScheduleException("End time must be after start time");
+        }
         this.weekdays = weekdays;
         this.startTime = startTime;
         this.endTime = endTime;
