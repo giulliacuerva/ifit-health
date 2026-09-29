@@ -4,6 +4,7 @@ import java.util.*;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 
+import br.ifsp.demo.exception.*;
 import org.mockito.Mock;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,11 +19,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
-
-import br.ifsp.demo.exception.RoomTypeConflictException;
-import br.ifsp.demo.exception.RoomScheduleConflictException;
-import br.ifsp.demo.exception.TrainerScheduleConflictException;
-import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 
 
 @ExtendWith(MockitoExtension.class)
