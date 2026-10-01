@@ -1,5 +1,6 @@
 package br.ifsp.demo.domain.model;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -11,14 +12,16 @@ public class ActivityClass {
     private final Trainer trainer;
     private final Schedule schedule;
     private final int capacity;
+    private final BigDecimal monthlyFee;
 
-    public ActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity) {
+    public ActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee) {
         id = UUID.randomUUID();
         this.room = room;
         this.sport = sport;
         this.trainer = trainer;
         this.schedule = schedule;
         this.capacity = capacity;
+        this.monthlyFee = monthlyFee;
     }
 
     public UUID getId() {
@@ -45,6 +48,8 @@ public class ActivityClass {
         return capacity;
     }
 
+    public BigDecimal getMonthlyFee() {return monthlyFee;}
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -55,11 +60,12 @@ public class ActivityClass {
                 && Objects.equals(sport, that.sport)
                 && Objects.equals(trainer, that.trainer)
                 && Objects.equals(schedule, that.schedule)
-                && capacity == that.capacity;
+                && capacity == that.capacity
+                && Objects.equals(monthlyFee, that.monthlyFee);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, room, sport, trainer, schedule, capacity);
+        return Objects.hash(id, room, sport, trainer, schedule, capacity, monthlyFee);
     }
 }

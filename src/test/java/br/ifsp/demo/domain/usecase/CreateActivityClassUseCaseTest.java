@@ -1,5 +1,6 @@
 package br.ifsp.demo.domain.usecase;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -48,11 +49,11 @@ public class CreateActivityClassUseCaseTest {
 
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
         Schedule schedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 10);
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 10, new BigDecimal("250.00"));
 
         when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
 
-        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 10);
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 10, new BigDecimal("250.00"));
 
         assertThat(result).isEqualTo(activityClass);
 
@@ -69,13 +70,15 @@ public class CreateActivityClassUseCaseTest {
         Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
         Schedule newSchedule = new Schedule(classDays,LocalTime.of(10, 30),LocalTime.of(11, 30));
 
-        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
 
         when(activityClassRepo.findByRoom(room)).thenReturn(List.of(existingActivityClass));
 
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00")))
                 .isInstanceOf(RoomScheduleConflictException.class);
 
+        verify(activityClassRepo, never())
+                .save(any(ActivityClass.class));
     }
 
     @Test
@@ -88,13 +91,15 @@ public class CreateActivityClassUseCaseTest {
         Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
         Schedule newSchedule = new Schedule(classDays,LocalTime.of(10, 30),LocalTime.of(11, 30));
 
-        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
 
         when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(existingActivityClass));
 
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00")))
                 .isInstanceOf(TrainerScheduleConflictException.class);
 
+        verify(activityClassRepo, never())
+                .save(any(ActivityClass.class));
     }
 
     @Test
@@ -105,15 +110,15 @@ public class CreateActivityClassUseCaseTest {
 
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
         Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
 
         Schedule newSchedule = new Schedule(classDays,LocalTime.of(11, 0),LocalTime.of(12, 0));
-        ActivityClass activityClass = new ActivityClass(room, sport, trainer, newSchedule, 10);
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
 
         when(activityClassRepo.findByRoom(room)).thenReturn(List.of(existingActivityClass));
         when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
 
-        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule, 10);
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
 
         assertThat(result).isEqualTo(activityClass);
 
@@ -131,7 +136,7 @@ public class CreateActivityClassUseCaseTest {
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
         Schedule schedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
 
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, 10))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, 10, new BigDecimal("250.00")))
                 .isInstanceOf(RoomTypeConflictException.class);
     }
 
@@ -145,7 +150,7 @@ public class CreateActivityClassUseCaseTest {
 
         int differentCapacity = room.getCapacity() + 1;
 
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, differentCapacity))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, differentCapacity, new BigDecimal("250.00")))
                 .isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
     }
 
