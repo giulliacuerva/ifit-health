@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +35,7 @@ public class EnrollCustomerUseCaseTest {
     private EnrollmentRepository enrollmentRepo;
 
     private ActivityClass activityClass;
+    private ActivityClass anotherActivityClass;
 
     @BeforeEach
     public void setup() {
@@ -41,10 +43,14 @@ public class EnrollCustomerUseCaseTest {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        Set<DayOfWeek> anotherClassDays = Set.of(DayOfWeek.THURSDAY);
         Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
+        Schedule anotherSchedule = new Schedule(anotherClassDays, LocalTime.of(11, 0), LocalTime.of(12, 0));
         BigDecimal monthlyFee = new BigDecimal("250.00");
 
         this.activityClass = new ActivityClass(room, sport, trainer, schedule, 10, monthlyFee);
+        this.anotherActivityClass = new ActivityClass(room, sport, trainer, anotherSchedule, 10, monthlyFee);
+
     }
 
     @Test
@@ -63,11 +69,37 @@ public class EnrollCustomerUseCaseTest {
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
-        Enrollment result = sut.enroll(customer, activityClassId);
+        Enrollment result = sut.enroll(customer, List.of(activityClassId));
 
         assertThat(result).isEqualTo(enrollment);
         assertThat(result.getCustomer()).isEqualTo(customer);
         assertThat(result.getEnrollmentActivities()).hasSize(1);
+
+        verify(enrollmentRepo).save(enrollment);
+    }
+
+    @Test
+    @DisplayName("ShouldEnrollMultipleActivitiesInSameEnrollment")
+    void shouldEnrollMultipleActivitiesInSameEnrollment() {
+        Customer customer = new Customer("teste", "teste@gmail.com");
+        Enrollment enrollment = new Enrollment(customer);
+        UUID activityClassId = UUID.randomUUID();
+        UUID anotherActivityClassId = UUID.randomUUID();
+
+        when(activityClassRepo.findById(activityClassId)).thenReturn(activityClass);
+        when(activityClassRepo.findById(anotherActivityClassId)).thenReturn(anotherActivityClass);
+
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findActivitiesByActivityClass(anotherActivityClass)).thenReturn(List.of());
+
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
+
+        Enrollment result = sut.enroll(customer, List.of(activityClassId,anotherActivityClassId));
+
+        assertThat(result).isEqualTo(enrollment);
+        assertThat(result.getCustomer()).isEqualTo(customer);
+        assertThat(result.getEnrollmentActivities()).hasSize(2);
 
         verify(enrollmentRepo).save(enrollment);
     }
