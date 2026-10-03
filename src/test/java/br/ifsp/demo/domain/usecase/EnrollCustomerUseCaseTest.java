@@ -4,6 +4,7 @@ import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
@@ -33,24 +35,13 @@ public class EnrollCustomerUseCaseTest {
     private ActivityClassRepository activityClassRepo;
     @Mock
     private EnrollmentRepository enrollmentRepo;
-
-    private ActivityClass activityClass;
-    private ActivityClass anotherActivityClass;
+    private Customer customer;
+    private Enrollment enrollment;
 
     @BeforeEach
-    public void setup() {
-        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
-        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
-        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Set<DayOfWeek> anotherClassDays = Set.of(DayOfWeek.THURSDAY);
-        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
-        Schedule anotherSchedule = new Schedule(anotherClassDays, LocalTime.of(11, 0), LocalTime.of(12, 0));
-        BigDecimal monthlyFee = new BigDecimal("250.00");
-
-        this.activityClass = new ActivityClass(room, sport, trainer, schedule, 10, monthlyFee);
-        this.anotherActivityClass = new ActivityClass(room, sport, trainer, anotherSchedule, 10, monthlyFee);
-
+    public void setup(){
+        customer = new Customer("teste", "teste@gmail.com");
+        enrollment = new Enrollment(customer);
     }
 
     @Test
@@ -58,18 +49,18 @@ public class EnrollCustomerUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should enroll customer in activity")
     void shouldEnrollCustomerInActivity() {
-        UUID activityClassId = UUID.randomUUID();
-        Customer customer = new Customer("teste", "teste@gmail.com");
-        Enrollment enrollment = new Enrollment(customer);
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(10, schedule);
 
         List<EnrollmentActivity> enrollmentActivities = List.of();
 
-        when(activityClassRepo.findById(activityClassId)).thenReturn(activityClass);
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
         when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(enrollmentActivities);
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
-        Enrollment result = sut.enroll(customer, List.of(activityClassId));
+        Enrollment result = sut.enroll(customer, List.of(activityClass.getId()));
 
         assertThat(result).isEqualTo(enrollment);
         assertThat(result.getCustomer()).isEqualTo(customer);
@@ -79,23 +70,27 @@ public class EnrollCustomerUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("ShouldEnrollMultipleActivitiesInSameEnrollment")
     void shouldEnrollMultipleActivitiesInSameEnrollment() {
-        Customer customer = new Customer("teste", "teste@gmail.com");
-        Enrollment enrollment = new Enrollment(customer);
-        UUID activityClassId = UUID.randomUUID();
-        UUID anotherActivityClassId = UUID.randomUUID();
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(10, schedule);
 
-        when(activityClassRepo.findById(activityClassId)).thenReturn(activityClass);
-        when(activityClassRepo.findById(anotherActivityClassId)).thenReturn(anotherActivityClass);
+        Set<DayOfWeek> anotherClassDays = Set.of(DayOfWeek.THURSDAY);
+        Schedule anotherSchedule = new Schedule(anotherClassDays, LocalTime.of(11, 0), LocalTime.of(12, 0));
+        ActivityClass anotherActivityClass = createActivityClass(20, anotherSchedule);
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findById(anotherActivityClass.getId())).thenReturn(anotherActivityClass);
 
         when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
         when(enrollmentRepo.findActivitiesByActivityClass(anotherActivityClass)).thenReturn(List.of());
-
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
-        Enrollment result = sut.enroll(customer, List.of(activityClassId,anotherActivityClassId));
+        Enrollment result = sut.enroll(customer, List.of(activityClass.getId(),anotherActivityClass.getId()));
 
         assertThat(result).isEqualTo(enrollment);
         assertThat(result.getCustomer()).isEqualTo(customer);
@@ -104,4 +99,33 @@ public class EnrollCustomerUseCaseTest {
         verify(enrollmentRepo).save(enrollment);
     }
 
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when activity is full")
+    void shouldRejectEnrollmentWhenActivityIsFull() {
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(1, schedule);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("200.00"));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+                .thenReturn(List.of(enrollmentActivity));
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
+                .isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
+
+        verify(enrollmentRepo, never()).save(enrollment);
+    }
+
+    private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
+        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
+        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
+        return new ActivityClass(
+                room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00")
+        );
+    }
 }
