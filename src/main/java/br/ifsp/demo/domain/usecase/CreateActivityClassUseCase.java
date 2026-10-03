@@ -1,13 +1,14 @@
 package br.ifsp.demo.domain.usecase;
 
 import br.ifsp.demo.domain.model.*;
-
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 
 import br.ifsp.demo.exception.RoomTypeConflictException;
 import br.ifsp.demo.exception.RoomScheduleConflictException;
 import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
+
+import java.math.BigDecimal;
 
 
 public class CreateActivityClassUseCase {
@@ -17,13 +18,13 @@ public class CreateActivityClassUseCase {
         this.activityClassRepo = activityClassRepo;
     }
 
-    public ActivityClass createNewActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity) {
+    public ActivityClass createNewActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee) {
         validateRoomConflict(room, schedule);
         validateTrainerConflict(trainer, schedule);
         validateRoomType(room, sport);
         validateCapacityExceeds(room, capacity);
 
-        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, capacity);
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, capacity, monthlyFee);
 
         return activityClassRepo.save(activityClass);
     }
