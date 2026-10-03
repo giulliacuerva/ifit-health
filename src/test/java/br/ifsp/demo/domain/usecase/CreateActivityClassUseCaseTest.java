@@ -48,7 +48,7 @@ public class CreateActivityClassUseCaseTest {
     @Tag("TDD")
     @Tag("UnitTest")
     @DisplayName("Should return a new ActivityClass when room, sport and trainer are available at the given period")
-    public void shouldCreateClassWhenAvailable() {
+    void shouldCreateClassWhenAvailable() {
         ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 10);
         when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
         ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 10);
@@ -60,7 +60,7 @@ public class CreateActivityClassUseCaseTest {
     @Tag("TDD")
     @Tag("UnitTest")
     @DisplayName("Should not create ActivityClass when room is booked at the given period")
-    public void shouldNotCreateActivityClassWhenRoomIsBooked() {
+    void shouldNotCreateActivityClassWhenRoomIsBooked() {
         Schedule newSchedule = new Schedule(classDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
         ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
         when(activityClassRepo.findByRoom(room)).thenReturn(List.of(existingActivityClass));
@@ -72,7 +72,7 @@ public class CreateActivityClassUseCaseTest {
     @Tag("TDD")
     @Tag("UnitTest")
     @DisplayName("Should not create ActivityClass when trainer is booked at the given period")
-    public void shouldNotCreateActivityClassWhenTrainerIsBooked() {
+    void shouldNotCreateActivityClassWhenTrainerIsBooked() {
         Schedule newSchedule = new Schedule(classDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
         ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
         when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(existingActivityClass));
@@ -84,7 +84,7 @@ public class CreateActivityClassUseCaseTest {
     @Tag("TDD")
     @Tag("UnitTest")
     @DisplayName("Should create a new ActivityClass when the schedule is adjacent to an existing class")
-    public void shouldCreateClassWhenScheduleIsAdjacent() {
+    void shouldCreateClassWhenScheduleIsAdjacent() {
         ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
         Schedule newSchedule = new Schedule(classDays, LocalTime.of(11, 0), LocalTime.of(12, 0));
         ActivityClass activityClass = new ActivityClass(room, sport, trainer, newSchedule, 10);
