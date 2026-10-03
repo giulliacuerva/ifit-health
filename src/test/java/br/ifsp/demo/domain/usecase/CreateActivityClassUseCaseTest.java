@@ -30,7 +30,7 @@ public class CreateActivityClassUseCaseTest {
     private Trainer trainer;
     private Room room;
     private Sport sport;
-    private Set classDays;
+    private Set<DayOfWeek> classDays;
     private Schedule schedule;
     private Schedule existingSchedule;
 
