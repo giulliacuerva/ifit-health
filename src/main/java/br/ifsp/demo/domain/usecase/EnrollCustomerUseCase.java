@@ -20,19 +20,20 @@ public class EnrollCustomerUseCase {
         this.enrollmentRepository = enrollmentRepository;
     }
 
-    public Enrollment enroll(Customer customer, UUID activityClassId) {
-        ActivityClass activityClass = activityClassRepository.findById(activityClassId);
-
-        List<EnrollmentActivity> enrollmentActivities =
-                enrollmentRepository.findActivitiesByActivityClass(activityClass);
-
-        if ((enrollmentActivities.size() >= activityClass.getCapacity())){
-            throw new IllegalStateException("The activity is currently full");
-        }
-
+    public Enrollment enroll(Customer customer, List<UUID> activityClassIds) {
         Enrollment enrollment = enrollmentRepository.findByCustomer(customer);
-        enrollment.addActivity(activityClass);
 
+        for (UUID activityClassId : activityClassIds) {
+            ActivityClass activityClass = activityClassRepository.findById(activityClassId);
+
+            List<EnrollmentActivity> enrollmentActivities =
+                    enrollmentRepository.findActivitiesByActivityClass(activityClass);
+            if ((enrollmentActivities.size() >= activityClass.getCapacity())){
+                throw new IllegalStateException("The activity is currently full");
+            }
+
+            enrollment.addActivity(activityClass);
+        }
         return enrollmentRepository.save(enrollment);
     }
 }
