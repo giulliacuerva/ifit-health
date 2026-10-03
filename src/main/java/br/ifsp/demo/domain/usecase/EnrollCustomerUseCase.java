@@ -6,6 +6,7 @@ import br.ifsp.demo.domain.model.Enrollment;
 import br.ifsp.demo.domain.model.EnrollmentActivity;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class EnrollCustomerUseCase {
             List<EnrollmentActivity> enrollmentActivities =
                     enrollmentRepository.findActivitiesByActivityClass(activityClass);
             if ((enrollmentActivities.size() >= activityClass.getCapacity())){
-                throw new IllegalStateException("The activity is currently full");
+                throw new CapacityIsGreaterThanAcceptedException("The activity is currently full");
             }
 
             enrollment.addActivity(activityClass);
