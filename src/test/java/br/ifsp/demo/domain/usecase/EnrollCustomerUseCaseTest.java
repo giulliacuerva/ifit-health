@@ -141,6 +141,30 @@ public class EnrollCustomerUseCaseTest {
         verify(enrollmentRepo, never()).save(enrollment);
     }
 
+    @Test
+    @DisplayName("Should reject enrollment when selected activities have conflicting schedules")
+    void shouldRejectEnrollmentWhenSelectedActivitiesHaveConflictingSchedules() {
+        Set<DayOfWeek> ActivityDays = Set.of(DayOfWeek.MONDAY);
+        Schedule firstSchedule = new Schedule(ActivityDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass activity = createActivityClass(10, firstSchedule);
+
+        Schedule secondSchedule = new Schedule(ActivityDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
+        ActivityClass anotherActivity = createActivityClass(10, secondSchedule);
+
+        when(activityClassRepo.findById(activity.getId())).thenReturn(activity);
+        when(activityClassRepo.findById(anotherActivity.getId())).thenReturn(anotherActivity);
+
+        when(enrollmentRepo.findActivitiesByActivityClass(activity)).thenReturn(List.of());
+        when(enrollmentRepo.findActivitiesByActivityClass(anotherActivity)).thenReturn(List.of());
+
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
