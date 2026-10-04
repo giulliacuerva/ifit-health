@@ -22,6 +22,14 @@ public class Enrollment {
         enrollmentActivities.add(enrollmentActivity);
     }
 
+    public void cancelActivity(UUID activityId) {
+        EnrollmentActivity enrollmentActivity = enrollmentActivities.stream()
+                .filter(activity -> activity.getId()
+                        .equals(activityId))
+                        .findFirst().orElseThrow();
+        enrollmentActivities.remove(enrollmentActivity);
+    }
+
     public UUID getId() {
         return id;
     }
