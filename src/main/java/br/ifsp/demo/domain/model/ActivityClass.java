@@ -13,6 +13,7 @@ public class ActivityClass {
     private final Schedule schedule;
     private final int capacity;
     private final BigDecimal monthlyFee;
+    private boolean active;
 
     public ActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee) {
         id = UUID.randomUUID();
@@ -22,6 +23,7 @@ public class ActivityClass {
         this.schedule = schedule;
         this.capacity = capacity;
         this.monthlyFee = monthlyFee;
+        this.active = true;
     }
 
     public UUID getId() {
@@ -67,5 +69,13 @@ public class ActivityClass {
     @Override
     public int hashCode() {
         return Objects.hash(id, room, sport, trainer, schedule, capacity, monthlyFee);
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 }
