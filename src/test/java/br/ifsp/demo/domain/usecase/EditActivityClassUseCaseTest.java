@@ -13,7 +13,8 @@ import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.Set;
 import java.util.UUID;
-
+import br.ifsp.demo.exception.RoomScheduleConflictException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -84,5 +85,39 @@ public class EditActivityClassUseCaseTest {
                 .isEqualByComparingTo(BigDecimal.valueOf(250));
 
         verify(activityClassRepo).save(activityClass);
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when room has schedule conflict")
+    void shouldRejectEditWhenRoomHasScheduleConflict() {
+        ActivityClass otherActivity = new ActivityClass(
+                room,
+                sport,
+                trainer,
+                schedule,
+                10,
+                BigDecimal.valueOf(200)
+        );
+
+        when(activityClassRepo.findById(activityClass.getId()))
+                .thenReturn(activityClass);
+
+        when(activityClassRepo.findByRoom(room))
+                .thenReturn(List.of(otherActivity));
+
+        assertThatThrownBy(() -> sut.edit(
+                activityClass.getId(),
+                room,
+                sport,
+                trainer,
+                schedule,
+                10,
+                BigDecimal.valueOf(250)
+        ))
+                .isInstanceOf(RoomScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
     }
 }
