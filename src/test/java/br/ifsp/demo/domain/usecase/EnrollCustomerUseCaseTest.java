@@ -24,7 +24,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -122,6 +121,8 @@ public class EnrollCustomerUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should reject enrollment when activity conflicts with customer schedule")
     void shouldRejectEnrollmentWhenActivityConflictsWithCustomerSchedule() {
         Set<DayOfWeek> activityDays = Set.of(DayOfWeek.MONDAY);
@@ -143,6 +144,8 @@ public class EnrollCustomerUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should reject enrollment when selected activities have conflicting schedules")
     void shouldRejectEnrollmentWhenSelectedActivitiesHaveConflictingSchedules() {
         Set<DayOfWeek> ActivityDays = Set.of(DayOfWeek.MONDAY);
@@ -167,6 +170,8 @@ public class EnrollCustomerUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should rejected enrollment when customer is already enrolled in activity")
     void shouldRejectedEnrollmentWhenCustomerIsAlreadyEnrolledInActivity() {
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
@@ -181,6 +186,26 @@ public class EnrollCustomerUseCaseTest {
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("The customer is already enrolled in this activity");
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when activity is inactive")
+    void shouldRejectEnrollmentWhenActivityIsInactive() {
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(10, schedule);
+        activityClass.deactivate();
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("The activity is inactive");
 
         verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
