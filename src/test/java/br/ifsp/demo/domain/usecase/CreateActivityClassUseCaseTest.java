@@ -24,21 +24,25 @@ import br.ifsp.demo.domain.repository.ActivityClassRepository;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateActivityClassUseCaseTest {
-
     @InjectMocks
     private CreateActivityClassUseCase sut;
     @Mock
     private ActivityClassRepository activityClassRepo;
-
     private Trainer trainer;
     private Room room;
     private Sport sport;
+    private Set classDays;
+    private Schedule schedule;
+    private Schedule existingSchedule;
 
     @BeforeEach
     public void setup() {
         trainer = new Trainer(UUID.randomUUID(), "John Doe");
         room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
+        schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        existingSchedule = schedule;
     }
 
     @Test
@@ -46,17 +50,10 @@ public class CreateActivityClassUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should return a new ActivityClass when room, sport and trainer are available at the given period")
     public void shouldCreateClassWhenAvailable() {
-
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule schedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 10, new BigDecimal("250.00"));
-
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 10);
         when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
-
-        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 10, new BigDecimal("250.00"));
-
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 10);
         assertThat(result).isEqualTo(activityClass);
-
         verify(activityClassRepo).save(any(ActivityClass.class));
     }
 
@@ -65,20 +62,11 @@ public class CreateActivityClassUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should not create ActivityClass when room is booked at the given period")
     public void shouldNotCreateActivityClassWhenRoomIsBooked() {
-
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
-        Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-        Schedule newSchedule = new Schedule(classDays,LocalTime.of(10, 30),LocalTime.of(11, 30));
-
-        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
-
+        Schedule newSchedule = new Schedule(classDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
         when(activityClassRepo.findByRoom(room)).thenReturn(List.of(existingActivityClass));
-
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00")))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10))
                 .isInstanceOf(RoomScheduleConflictException.class);
-
-        verify(activityClassRepo, never())
-                .save(any(ActivityClass.class));
     }
 
     @Test
@@ -86,20 +74,11 @@ public class CreateActivityClassUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should not create ActivityClass when trainer is booked at the given period")
     public void shouldNotCreateActivityClassWhenTrainerIsBooked() {
-
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
-        Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-        Schedule newSchedule = new Schedule(classDays,LocalTime.of(10, 30),LocalTime.of(11, 30));
-
-        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
-
+        Schedule newSchedule = new Schedule(classDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
         when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(existingActivityClass));
-
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00")))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, newSchedule, 10))
                 .isInstanceOf(TrainerScheduleConflictException.class);
-
-        verify(activityClassRepo, never())
-                .save(any(ActivityClass.class));
     }
 
     @Test
@@ -107,21 +86,13 @@ public class CreateActivityClassUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should create a new ActivityClass when the schedule is adjacent to an existing class")
     public void shouldCreateClassWhenScheduleIsAdjacent() {
-
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule existingSchedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
-
-        Schedule newSchedule = new Schedule(classDays,LocalTime.of(11, 0),LocalTime.of(12, 0));
-        ActivityClass activityClass = new ActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
-
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10);
+        Schedule newSchedule = new Schedule(classDays, LocalTime.of(11, 0), LocalTime.of(12, 0));
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, newSchedule, 10);
         when(activityClassRepo.findByRoom(room)).thenReturn(List.of(existingActivityClass));
         when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
-
-        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
-
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule, 10);
         assertThat(result).isEqualTo(activityClass);
-
         verify(activityClassRepo).save(any(ActivityClass.class));
     }
 
@@ -132,11 +103,7 @@ public class CreateActivityClassUseCaseTest {
     void shouldNotCreateANewActivityClassWhenRoomTypeHasConflict(){
         RoomType sportType = RoomType.POOL;
         Sport sport = new Sport(UUID.randomUUID(), "Swimming", sportType);
-
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule schedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, 10, new BigDecimal("250.00")))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, 10))
                 .isInstanceOf(RoomTypeConflictException.class);
     }
 
@@ -145,12 +112,8 @@ public class CreateActivityClassUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("should not create ActivityClass when the provided capacity exceeds room capacity")
     void shouldNotCreateActivityClassWhenTheProvidedCapacityExceeds(){
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule schedule = new Schedule(classDays,LocalTime.of(10, 0),LocalTime.of(11, 0));
-
         int differentCapacity = room.getCapacity() + 1;
-
-        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, differentCapacity, new BigDecimal("250.00")))
+        assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, differentCapacity))
                 .isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
     }
 
