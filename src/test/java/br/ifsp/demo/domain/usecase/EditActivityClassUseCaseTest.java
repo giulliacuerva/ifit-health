@@ -120,4 +120,37 @@ public class EditActivityClassUseCaseTest {
 
         verify(activityClassRepo, never()).save(any());
     }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should edit activity without conflicting with itself")
+    void shouldEditActivityWithoutConflictingWithItself() {
+
+        when(activityClassRepo.findById(activityClass.getId()))
+                .thenReturn(activityClass);
+
+        when(activityClassRepo.findByRoom(room))
+                .thenReturn(List.of(activityClass));
+
+        when(activityClassRepo.save(activityClass))
+                .thenReturn(activityClass);
+
+        ActivityClass result = sut.edit(
+                activityClass.getId(),
+                room,
+                sport,
+                trainer,
+                schedule,
+                10,
+                BigDecimal.valueOf(250)
+        );
+
+        assertThat(result.getMonthlyFee())
+                .isEqualByComparingTo(BigDecimal.valueOf(250));
+
+        verify(activityClassRepo).save(activityClass);
+    }
+
+
 }
