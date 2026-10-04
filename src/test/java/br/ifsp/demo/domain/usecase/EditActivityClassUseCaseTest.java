@@ -2,6 +2,7 @@ package br.ifsp.demo.domain.usecase;
 
 import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
+import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -152,5 +153,39 @@ public class EditActivityClassUseCaseTest {
         verify(activityClassRepo).save(activityClass);
     }
 
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when trainer has schedule conflict")
+    void shouldRejectEditWhenTrainerHasScheduleConflict() {
+
+        ActivityClass otherActivity = new ActivityClass(
+                room,
+                sport,
+                trainer,
+                schedule,
+                10,
+                BigDecimal.valueOf(200)
+        );
+
+        when(activityClassRepo.findById(activityClass.getId()))
+                .thenReturn(activityClass);
+
+        when(activityClassRepo.findByTrainer(trainer))
+                .thenReturn(List.of(otherActivity));
+
+        assertThatThrownBy(() -> sut.edit(
+                activityClass.getId(),
+                room,
+                sport,
+                trainer,
+                schedule,
+                10,
+                BigDecimal.valueOf(250)
+        ))
+                .isInstanceOf(TrainerScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
 
 }
