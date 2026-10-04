@@ -66,11 +66,9 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.findById(activityClass.getId()))
                 .thenReturn(activityClass);
 
-        when(activityClassRepo.findByRoom(any(Room.class)))
-                .thenReturn(List.of());
+        when(activityClassRepo.save(activityClass))
+                .thenReturn(activityClass);
 
-        when(activityClassRepo.findByTrainer(any(Trainer.class)))
-                .thenReturn(List.of());
 
         ActivityClass result = sut.edit(
                 activityClass.getId(),
