@@ -87,5 +87,4 @@ public class CancelEnrollmentActivityUseCaseTest {
                 room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00")
         );
     }
-
 }
