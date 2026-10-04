@@ -1,5 +1,6 @@
 package br.ifsp.demo.domain.usecase;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
