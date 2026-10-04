@@ -18,6 +18,9 @@ public class Enrollment {
     }
 
     public void addActivity(ActivityClass activityClass) {
+        if (hasActivity(activityClass)){
+            throw new IllegalStateException("The customer is already enrolled in this activity");
+        }
         if (hasScheduleConflict(activityClass)) {
             throw new ActivityScheduleConflictException(
                     "The activity conflicts with the customer's schedule"
@@ -27,6 +30,15 @@ public class Enrollment {
                 activityClass, activityClass.getMonthlyFee()
         );
         enrollmentActivities.add(enrollmentActivity);
+    }
+
+    private boolean hasActivity(ActivityClass activityClass) {
+        return enrollmentActivities.stream()
+                .anyMatch(enrollmentActivity ->
+                        enrollmentActivity.getActivityClass()
+                                .getId()
+                                .equals(activityClass.getId())
+                );
     }
 
     private boolean hasScheduleConflict(ActivityClass activityClass) {
