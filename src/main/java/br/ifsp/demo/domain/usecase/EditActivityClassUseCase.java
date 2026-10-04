@@ -7,6 +7,7 @@ import br.ifsp.demo.domain.model.Trainer;
 import br.ifsp.demo.domain.model.Schedule;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.exception.RoomScheduleConflictException;
+import br.ifsp.demo.exception.TrainerScheduleConflictException;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -32,6 +33,7 @@ public class EditActivityClassUseCase {
                 activityClassRepo.findById(activityClassId);
 
         validateRoomConflict(activityClassId, room, schedule);
+        validateTrainerConflict(activityClassId, trainer, schedule);
 
         activityClass.edit(
                 room,
@@ -60,6 +62,25 @@ public class EditActivityClassUseCase {
         if (conflict) {
             throw new RoomScheduleConflictException(
                     "Room has a schedule conflict"
+            );
+        }
+    }
+
+    private void validateTrainerConflict(
+            UUID activityClassId,
+            Trainer trainer,
+            Schedule schedule
+    ) {
+        boolean conflict = activityClassRepo.findByTrainer(trainer)
+                .stream()
+                .filter(activity -> !activity.getId().equals(activityClassId))
+                .anyMatch(activity ->
+                        activity.getSchedule().conflictsWith(schedule)
+                );
+
+        if (conflict) {
+            throw new TrainerScheduleConflictException(
+                    "Trainer has a schedule conflict"
             );
         }
     }
