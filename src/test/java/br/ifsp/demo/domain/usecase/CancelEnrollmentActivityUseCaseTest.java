@@ -1,7 +1,12 @@
 package br.ifsp.demo.domain.usecase;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.Set;
+import java.util.UUID;
 
+import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import org.mockito.Mock;
 import org.mockito.InjectMocks;
@@ -34,6 +39,7 @@ public class CancelEnrollmentActivityUseCaseTest {
     public void setup() {
         customer = new Customer("Test", "test@gmail.com");
         enrollment = new Enrollment(customer);
+        activityClass = createActivityClass(1);
     }
 
     @Test
@@ -41,10 +47,7 @@ public class CancelEnrollmentActivityUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should cancel the selected activity enrollment")
     void shouldCancelSelectedActivityEnrollment() {
-        ActivityClass otherActivity = mock(ActivityClass.class);
-
-        when(activityClass.getMonthlyFee()).thenReturn(new BigDecimal("100.00"));
-        when(otherActivity.getMonthlyFee()).thenReturn(new BigDecimal("100.00"));
+        ActivityClass otherActivity = createActivityClass(10);
 
         enrollment.addActivity(activityClass);
         enrollment.addActivity(otherActivity);
@@ -60,4 +63,29 @@ public class CancelEnrollmentActivityUseCaseTest {
         assertThat(enrollment.getEnrollmentActivities()).contains(otherEnrollmentActivity);
         verify(enrollmentRepo).save(enrollment);
     }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should cancel the selected activity enrollment when class if full and free the spot")
+    void shouldCancelSelectedActivityEnrollmentAndFreeTheSpot() {
+        enrollment.addActivity(activityClass);
+        EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().getFirst();
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
+        assertThat(enrollment.getEnrollmentActivities()).doesNotContain(enrollmentActivityToCancel);
+        assertThat(enrollmentRepo.findActivitiesByActivityClass(activityClass)).isEmpty();
+        verify(enrollmentRepo).save(enrollment);
+    }
+    private ActivityClass createActivityClass(int activityCapacity) {
+        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
+        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        return new ActivityClass(
+                room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00")
+        );
+    }
+
 }
