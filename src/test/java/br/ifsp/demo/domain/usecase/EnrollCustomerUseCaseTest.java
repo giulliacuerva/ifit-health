@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -161,6 +162,25 @@ public class EnrollCustomerUseCaseTest {
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @DisplayName("Should rejected enrollment when customer is already enrolled in activity")
+    void shouldRejectedEnrollmentWhenCustomerIsAlreadyEnrolledInActivity() {
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(10, schedule);
+        enrollment.addActivity(activityClass);
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("The customer is already enrolled in this activity");
 
         verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
