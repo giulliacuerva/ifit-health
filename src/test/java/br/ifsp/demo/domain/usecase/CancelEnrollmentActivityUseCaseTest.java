@@ -27,13 +27,10 @@ public class CancelEnrollmentActivityUseCaseTest {
     private CancelEnrollmentActivityUseCase sut;
     @Mock
     private EnrollmentRepository enrollmentRepo;
-    @Mock
-    private Customer customer;
-    @Mock
-    private Enrollment enrollment;
-    @Mock
-    private ActivityClass activityClass;
 
+    private Customer customer;
+    private Enrollment enrollment;
+    private ActivityClass activityClass;
 
     @BeforeEach
     public void setup() {
@@ -59,8 +56,8 @@ public class CancelEnrollmentActivityUseCaseTest {
 
         sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
 
-        assertThat(enrollment.getEnrollmentActivities()).doesNotContain(enrollmentActivityToCancel);
-        assertThat(enrollment.getEnrollmentActivities()).contains(otherEnrollmentActivity);
+        assertThat(enrollmentActivityToCancel.isActive()).isFalse();
+        assertThat(otherEnrollmentActivity.isActive()).isTrue();
         verify(enrollmentRepo).save(enrollment);
     }
 
@@ -68,12 +65,12 @@ public class CancelEnrollmentActivityUseCaseTest {
     @Tag("TDD")
     @Tag("UnitTest")
     @DisplayName("Should cancel the selected activity enrollment when class if full and free the spot")
-    void shouldCancelSelectedActivityEnrollmentAndFreeTheSpot() {
+    void shouldCancelSelectedActivityEnrollmentAndFreeTheSpotFrom() {
         enrollment.addActivity(activityClass);
         EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().getFirst();
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
-        assertThat(enrollment.getEnrollmentActivities()).doesNotContain(enrollmentActivityToCancel);
+        assertThat(enrollmentActivityToCancel.isActive()).isFalse();
         assertThat(enrollmentRepo.findActivitiesByActivityClass(activityClass)).isEmpty();
         verify(enrollmentRepo).save(enrollment);
     }
