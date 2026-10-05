@@ -6,6 +6,8 @@ import br.ifsp.demo.domain.model.Sport;
 import br.ifsp.demo.domain.model.Trainer;
 import br.ifsp.demo.domain.model.Schedule;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
+import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.exception.ActivityScheduleConflictException;
 import br.ifsp.demo.exception.RoomScheduleConflictException;
 import br.ifsp.demo.exception.TrainerScheduleConflictException;
 
@@ -15,9 +17,14 @@ import java.util.UUID;
 public class EditActivityClassUseCase {
 
     private final ActivityClassRepository activityClassRepo;
+    private final EnrollmentRepository enrollmentRepo;
 
-    public EditActivityClassUseCase(ActivityClassRepository activityClassRepo) {
+    public EditActivityClassUseCase(
+            ActivityClassRepository activityClassRepo,
+            EnrollmentRepository enrollmentRepo
+    ) {
         this.activityClassRepo = activityClassRepo;
+        this.enrollmentRepo = enrollmentRepo;
     }
 
     public ActivityClass edit(
@@ -34,6 +41,7 @@ public class EditActivityClassUseCase {
 
         validateRoomConflict(activityClassId, room, schedule);
         validateTrainerConflict(activityClassId, trainer, schedule);
+        validateStudentScheduleConflict(activityClass, schedule);
 
         activityClass.edit(
                 room,
@@ -81,6 +89,27 @@ public class EditActivityClassUseCase {
         if (conflict) {
             throw new TrainerScheduleConflictException(
                     "Trainer has a schedule conflict"
+            );
+        }
+    }
+
+    private void validateStudentScheduleConflict(
+            ActivityClass activityClass,
+            Schedule newSchedule
+    ) {
+        boolean conflict = enrollmentRepo
+                .findActivitiesByActivityClass(activityClass)
+                .stream()
+                .anyMatch(enrollmentActivity ->
+                        enrollmentActivity
+                                .getActivityClass()
+                                .getSchedule()
+                                .conflictsWith(newSchedule)
+                );
+
+        if (conflict) {
+            throw new ActivityScheduleConflictException(
+                    "Student has a schedule conflict"
             );
         }
     }
