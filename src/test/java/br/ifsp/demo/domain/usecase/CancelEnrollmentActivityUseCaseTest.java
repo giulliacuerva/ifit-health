@@ -84,4 +84,18 @@ public class CancelEnrollmentActivityUseCaseTest {
                 room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00")
         );
     }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("should deactivate enrollment and enrollment activity")
+    void shouldDeactivateEnrollmentAndActivity(){
+        enrollment.addActivity(activityClass);
+        EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().getFirst();
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
+        assertThat(enrollmentActivityToCancel.isActive()).isFalse();
+        assertThat(enrollment.isActive()).isFalse();
+        verify(enrollmentRepo).save(enrollment);
+    }
 }
