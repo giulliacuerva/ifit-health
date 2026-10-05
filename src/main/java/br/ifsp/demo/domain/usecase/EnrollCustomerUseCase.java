@@ -34,7 +34,6 @@ public class EnrollCustomerUseCase {
                 throw new IllegalStateException("The activity is inactive");
             }
             List<EnrollmentActivity> enrolled = enrollmentRepository.findEnrolledActivitiesByActivityClass(activity);
-
             if (enrolled.size() >= activity.getCapacity()) {
                 throw new CapacityIsGreaterThanAcceptedException("The activity has no available vacancies");
             }
