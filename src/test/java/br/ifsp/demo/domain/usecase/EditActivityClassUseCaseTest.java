@@ -2,6 +2,8 @@ package br.ifsp.demo.domain.usecase;
 
 import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
+import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.exception.ActivityScheduleConflictException;
 import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +26,8 @@ public class EditActivityClassUseCaseTest {
 
     @Mock
     private ActivityClassRepository activityClassRepo;
-
+    @Mock
+    private EnrollmentRepository enrollmentRepo;
     @InjectMocks
     private EditActivityClassUseCase sut;
 
@@ -184,6 +187,59 @@ public class EditActivityClassUseCaseTest {
                 BigDecimal.valueOf(250)
         ))
                 .isInstanceOf(TrainerScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when new schedule conflicts with enrolled student's schedule")
+    void shouldRejectEditWhenStudentHasScheduleConflict() {
+
+        Schedule conflictingSchedule = new Schedule(
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+                LocalTime.of(10, 30),
+                LocalTime.of(11, 30)
+        );
+
+        ActivityClass conflictingActivity = new ActivityClass(
+                room,
+                sport,
+                trainer,
+                conflictingSchedule,
+                10,
+                BigDecimal.valueOf(200)
+        );
+
+        EnrollmentActivity enrollmentActivity =
+                new EnrollmentActivity(
+                        conflictingActivity,
+                        BigDecimal.valueOf(200)
+                );
+
+        when(activityClassRepo.findById(activityClass.getId()))
+                .thenReturn(activityClass);
+
+        when(activityClassRepo.findByRoom(room))
+                .thenReturn(List.of());
+
+        when(activityClassRepo.findByTrainer(trainer))
+                .thenReturn(List.of());
+
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+                .thenReturn(List.of(enrollmentActivity));
+
+        assertThatThrownBy(() -> sut.edit(
+                activityClass.getId(),
+                room,
+                sport,
+                trainer,
+                conflictingSchedule,
+                10,
+                BigDecimal.valueOf(250)
+        ))
+                .isInstanceOf(ActivityScheduleConflictException.class);
 
         verify(activityClassRepo, never()).save(any());
     }
