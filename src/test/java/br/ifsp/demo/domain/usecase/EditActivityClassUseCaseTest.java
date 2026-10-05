@@ -36,6 +36,8 @@ public class EditActivityClassUseCaseTest {
     private Sport sport;
     private Schedule schedule;
     private ActivityClass activityClass;
+    private Schedule otherSchedule;
+    private ActivityClass enrolledActivity;
 
     @BeforeEach
     void setup() {
@@ -57,6 +59,21 @@ public class EditActivityClassUseCaseTest {
                 sport,
                 trainer,
                 schedule,
+                10,
+                BigDecimal.valueOf(200)
+        );
+
+        otherSchedule = new Schedule(
+                Set.of(DayOfWeek.TUESDAY),
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 0)
+        );
+
+        enrolledActivity = new ActivityClass(
+                room,
+                sport,
+                trainer,
+                otherSchedule,
                 10,
                 BigDecimal.valueOf(200)
         );
@@ -240,6 +257,51 @@ public class EditActivityClassUseCaseTest {
                 BigDecimal.valueOf(250)
         ))
                 .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when capacity is lower than enrolled students")
+    void shouldRejectEditWhenCapacityIsLowerThanEnrolledStudents() {
+
+        EnrollmentActivity enrollmentActivity1 =
+                new EnrollmentActivity(enrolledActivity, BigDecimal.valueOf(200));
+
+        EnrollmentActivity enrollmentActivity2 =
+                new EnrollmentActivity(enrolledActivity, BigDecimal.valueOf(200));
+
+        EnrollmentActivity enrollmentActivity3 =
+                new EnrollmentActivity(enrolledActivity, BigDecimal.valueOf(200));
+
+        when(activityClassRepo.findById(activityClass.getId()))
+                .thenReturn(activityClass);
+
+        when(activityClassRepo.findByRoom(room))
+                .thenReturn(List.of());
+
+        when(activityClassRepo.findByTrainer(trainer))
+                .thenReturn(List.of());
+
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+                .thenReturn(List.of(
+                        enrollmentActivity1,
+                        enrollmentActivity2,
+                        enrollmentActivity3
+                ));
+
+        assertThatThrownBy(() -> sut.edit(
+                activityClass.getId(),
+                room,
+                sport,
+                trainer,
+                schedule,
+                2,
+                BigDecimal.valueOf(250)
+        ))
+                .isInstanceOf(IllegalStateException.class);
 
         verify(activityClassRepo, never()).save(any());
     }

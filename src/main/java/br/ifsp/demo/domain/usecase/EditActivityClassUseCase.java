@@ -42,6 +42,7 @@ public class EditActivityClassUseCase {
         validateRoomConflict(activityClassId, room, schedule);
         validateTrainerConflict(activityClassId, trainer, schedule);
         validateStudentScheduleConflict(activityClass, schedule);
+        validateCapacity(activityClass, capacity);
 
         activityClass.edit(
                 room,
@@ -110,6 +111,22 @@ public class EditActivityClassUseCase {
         if (conflict) {
             throw new ActivityScheduleConflictException(
                     "Student has a schedule conflict"
+            );
+        }
+    }
+
+    private void validateCapacity(
+            ActivityClass activityClass,
+            int newCapacity
+    ) {
+        int enrolledStudents = enrollmentRepo
+                .findActivitiesByActivityClass(activityClass)
+                .size();
+
+        if (newCapacity < enrolledStudents) {
+            throw new IllegalStateException(
+                    "New capacity cannot be lower than enrolled students: "
+                            + enrolledStudents
             );
         }
     }
