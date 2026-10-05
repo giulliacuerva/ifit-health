@@ -306,4 +306,64 @@ public class EditActivityClassUseCaseTest {
         verify(activityClassRepo, never()).save(any());
     }
 
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should keep previous monthly fee for existing enrollment")
+    void shouldKeepPreviousMonthlyFeeForExistingEnrollment() {
+
+
+        Schedule enrollmentSchedule = new Schedule(
+                Set.of(DayOfWeek.TUESDAY),
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 0)
+        );
+
+        ActivityClass enrolledActivity = new ActivityClass(
+                room,
+                sport,
+                trainer,
+                enrollmentSchedule,
+                10,
+                BigDecimal.valueOf(200)
+        );
+
+        EnrollmentActivity enrollmentActivity =
+                new EnrollmentActivity(
+                        enrolledActivity,
+                        BigDecimal.valueOf(200)
+                );
+
+        when(activityClassRepo.findById(activityClass.getId()))
+                .thenReturn(activityClass);
+
+        when(activityClassRepo.findByRoom(room))
+                .thenReturn(List.of());
+
+        when(activityClassRepo.findByTrainer(trainer))
+                .thenReturn(List.of());
+
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+                .thenReturn(List.of(enrollmentActivity));
+
+        when(activityClassRepo.save(activityClass))
+                .thenReturn(activityClass);
+
+        sut.edit(
+                activityClass.getId(),
+                room,
+                sport,
+                trainer,
+                schedule,
+                10,
+                BigDecimal.valueOf(250)
+        );
+
+        assertThat(activityClass.getMonthlyFee())
+                .isEqualByComparingTo(BigDecimal.valueOf(250));
+
+        assertThat(enrollmentActivity.getMonthlyFee())
+                .isEqualByComparingTo(BigDecimal.valueOf(200));
+    }
+
 }
