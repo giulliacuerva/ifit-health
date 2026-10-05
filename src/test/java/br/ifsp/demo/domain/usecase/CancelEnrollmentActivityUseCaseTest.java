@@ -6,19 +6,20 @@ import java.time.LocalTime;
 import java.util.Set;
 import java.util.UUID;
 
+import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.exception.EnrollmentActivityAlreadyInactiveException;
+
 import org.mockito.Mock;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import br.ifsp.demo.domain.model.*;
+import static org.assertj.core.api.Assertions.*;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -97,5 +98,18 @@ public class CancelEnrollmentActivityUseCaseTest {
         assertThat(enrollmentActivityToCancel.isActive()).isFalse();
         assertThat(enrollment.isActive()).isFalse();
         verify(enrollmentRepo).save(enrollment);
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should not cancel an enrollment activity when it is already inactive")
+    void shouldNotCancelEnrollmentActivityWhenAlreadyInactive() {
+        enrollment.addActivity(activityClass);
+        EnrollmentActivity enrollmentActivity = enrollment.getEnrollmentActivities().getFirst();
+        enrollmentActivity.deactivate();
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        assertThatThrownBy(() -> sut.cancelActivity(customer, enrollmentActivity.getId()))
+                .isInstanceOf(EnrollmentActivityAlreadyInactiveException.class);
     }
 }
