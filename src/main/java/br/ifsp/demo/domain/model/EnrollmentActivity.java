@@ -1,8 +1,11 @@
 package br.ifsp.demo.domain.model;
 
+import br.ifsp.demo.exception.EnrollmentActivityAlreadyInactiveException;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+
 
 public class EnrollmentActivity {
     private final UUID id;
@@ -17,7 +20,12 @@ public class EnrollmentActivity {
         this.active = true;
     }
 
-    public void deactivate() { this.active = false; }
+    public void deactivate() {
+        if (!active) {
+            throw new EnrollmentActivityAlreadyInactiveException("Enrollment activity is already inactive");
+        }
+        this.active = false;
+    }
 
     public boolean isActive() { return active; }
 
