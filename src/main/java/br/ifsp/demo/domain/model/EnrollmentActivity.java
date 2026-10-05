@@ -8,12 +8,18 @@ public class EnrollmentActivity {
     private final UUID id;
     private final ActivityClass activityClass;
     private final BigDecimal monthlyFee;
+    private boolean active;
 
     public EnrollmentActivity(ActivityClass activityClass, BigDecimal monthlyFee) {
         this.id = UUID.randomUUID();
         this.activityClass = Objects.requireNonNull(activityClass);
         this.monthlyFee = Objects.requireNonNull(monthlyFee);
+        this.active = true;
     }
+
+    public void deactivate() { this.active = false; }
+
+    public boolean isActive() { return active; }
 
     public UUID getId() {
         return id;
