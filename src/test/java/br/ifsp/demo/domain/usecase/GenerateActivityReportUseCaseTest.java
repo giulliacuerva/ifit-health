@@ -106,6 +106,41 @@ class GenerateActivityReportUseCaseTest {
         verify(enrollmentRepository).findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
     }
 
+    @Test
+    @DisplayName("Should generate report only with activities from selected day")
+    void shouldGenerateReportOnlyWithSelectedDay() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        DayOfWeek dayFilter = DayOfWeek.MONDAY;
+
+        EnrollmentActivity swimmingEnrollment1 = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
+
+        EnrollmentActivity swimmingEnrollment2 =
+                new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
+
+        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
+
+        when(enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter))
+                .thenReturn(List.of(swimmingEnrollment1, swimmingEnrollment2));
+
+        ActivityReport result = sut.generate(startDate, endDate, dayFilter);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStartDate()).isEqualTo(startDate);
+        assertThat(result.getEndDate()).isEqualTo(endDate);
+        assertThat(result.getItems()).hasSize(1);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getActivityClass()).isEqualTo(swimmingActivity);
+        assertThat(item.getEnrollmentCount()).isEqualTo(2);
+        assertThat(item.getRevenue()).isEqualByComparingTo("360.00");
+
+        verify(enrollmentRepository).findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter);
+    }
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
