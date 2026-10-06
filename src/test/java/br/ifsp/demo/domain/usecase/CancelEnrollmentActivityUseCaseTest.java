@@ -45,8 +45,8 @@ public class CancelEnrollmentActivityUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should cancel the selected activity enrollment")
     void shouldCancelSelectedActivityEnrollment() {
-        ActivityClass otherActivity = createActivityClass(10);
-
+        Schedule newSchedule = new Schedule(Set.of(DayOfWeek.THURSDAY), LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass otherActivity = createActivityClass(10, newSchedule);
         enrollment.addActivity(activityClass);
         enrollment.addActivity(otherActivity);
 
@@ -67,6 +67,12 @@ public class CancelEnrollmentActivityUseCaseTest {
         Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
         Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
+    }
+    private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
+        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
+        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
         return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
     }
 
