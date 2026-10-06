@@ -6,6 +6,7 @@ import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.domain.usecase.dto.ActivityReport;
 import br.ifsp.demo.domain.usecase.dto.ActivityReportItem;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,13 @@ public class GenerateActivityReportUseCase {
     public ActivityReport generate(LocalDate startDate, LocalDate endDate, Sport sport) {
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, sport);
+
+        return createReport(startDate, endDate, enrollmentActivities);
+    }
+
+    public ActivityReport generate(LocalDate startDate, LocalDate endDate, DayOfWeek dayOfWeek) {
+        List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayOfWeek);
 
         return createReport(startDate, endDate, enrollmentActivities);
     }
