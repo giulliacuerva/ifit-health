@@ -1,5 +1,7 @@
 package br.ifsp.demo.domain.model;
 
+import br.ifsp.demo.exception.ActivityScheduleConflictException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,10 +20,33 @@ public class Enrollment {
     }
 
     public void addActivity(ActivityClass activityClass) {
+        if (hasActivity(activityClass)){
+            throw new IllegalStateException("The customer is already enrolled in this activity");
+        }
+        if (hasScheduleConflict(activityClass)) {
+            throw new ActivityScheduleConflictException(
+                    "The activity conflicts with the customer's schedule"
+            );
+        }
         EnrollmentActivity enrollmentActivity = new EnrollmentActivity(
                 activityClass, activityClass.getMonthlyFee()
         );
         enrollmentActivities.add(enrollmentActivity);
+    }
+
+    private boolean hasActivity(ActivityClass activityClass) {
+        return enrollmentActivities.stream()
+                .anyMatch(enrollmentActivity ->
+                        enrollmentActivity.isActive()
+                        && enrollmentActivity.getActivityClass().getId().equals(activityClass.getId()));
+    }
+
+    private boolean hasScheduleConflict(ActivityClass activityClass) {
+        return enrollmentActivities.stream()
+                .anyMatch(enrollmentActivity ->
+                        enrollmentActivity.isActive()
+                                && enrollmentActivity.getActivityClass()
+                                .getSchedule().conflictsWith(activityClass.getSchedule()));
     }
 
     public void cancelActivity(UUID activityId) {
