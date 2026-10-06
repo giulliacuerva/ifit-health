@@ -59,4 +59,17 @@ public class ScheduleTest {
         Schedule schedule = new Schedule(classDays, LocalTime.parse(start), LocalTime.parse(end));
         assertThat(schedule).isNotNull();
     }
+
+    @ParameterizedTest
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @CsvSource({
+            "05:59, 07:00",
+            "21:00, 22:01",
+    })
+    @DisplayName("Should not create Schedule when time is invalid")
+    void shouldNotCreateScheduleWhenTimeIsInvalid(String start, String end) {
+        assertThatThrownBy(() -> new Schedule(classDays, LocalTime.parse(start), LocalTime.parse(end)))
+                .isInstanceOf(InvalidScheduleException.class);
+    }
 }
