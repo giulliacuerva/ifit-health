@@ -17,15 +17,16 @@ public class Schedule {
     private static final LocalTime MAX_TIME = LocalTime.of(22, 0);
 
     public Schedule(Set<DayOfWeek> weekdays,LocalTime startTime,LocalTime endTime) {
+        this.weekdays = Objects.requireNonNull(weekdays, "Weekdays cannot be null");
+        this.startTime = Objects.requireNonNull(startTime, "Start time cannot be null");
+        this.endTime = Objects.requireNonNull(endTime, "End time cannot be null");
+
         if (!endTime.isAfter(startTime)) {
             throw new InvalidScheduleException("End time must be after start time");
         }
         if (startTime.isBefore(MIN_TIME) || endTime.isAfter(MAX_TIME)) {
             throw new InvalidScheduleException("Schedule must be between 06:00 and 22:00");
         }
-        this.weekdays = weekdays;
-        this.startTime = startTime;
-        this.endTime = endTime;
     }
 
     public boolean conflictsWith(Schedule otherSchedule) {
