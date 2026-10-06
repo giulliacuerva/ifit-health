@@ -114,6 +114,25 @@ public class EnrollCustomerUseCaseTest {
         verify(enrollmentRepo, never()).save(enrollment);
     }
 
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should create a new enrollment activity when customer enrolls in the same activity again after cancellation")
+    void shouldCreateNewEnrollmentActivityAfterPreviousCancellation() {
+        ActivityClass activityClass = createActivityClass(10);
+        enrollment.addActivity(activityClass);
+        EnrollmentActivity previousEnrollmentActivity = enrollment.getEnrollmentActivities().getFirst();
+        previousEnrollmentActivity.deactivate();
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
+        sut.enroll(customer, List.of(activityClass.getId()));
+        assertThat(enrollment.getEnrollmentActivities()).hasSize(2);
+        assertThat(enrollment.getEnrollmentActivities().get(0).isActive()).isFalse();
+        assertThat(enrollment.getEnrollmentActivities().get(1).isActive()).isTrue();
+    }
+
     private ActivityClass createActivityClass(int activityCapacity) {
         Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
