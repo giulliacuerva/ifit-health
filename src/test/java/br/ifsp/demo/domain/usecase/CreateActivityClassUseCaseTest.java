@@ -24,12 +24,10 @@ import br.ifsp.demo.domain.repository.ActivityClassRepository;
 
 @ExtendWith(MockitoExtension.class)
 public class CreateActivityClassUseCaseTest {
-
     @InjectMocks
     private CreateActivityClassUseCase sut;
     @Mock
     private ActivityClassRepository activityClassRepo;
-
     private Trainer trainer;
     private Room room;
     private Sport sport;
