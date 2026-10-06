@@ -24,6 +24,8 @@ public class ScheduleTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("should not create a schedule with end time before start time")
     void shouldNotCreateAScheduleWithEndTimeBeforeStartTime(){
         assertThatThrownBy(() -> new Schedule(classDays,LocalTime.of(11, 0),LocalTime.of(10, 0)))
