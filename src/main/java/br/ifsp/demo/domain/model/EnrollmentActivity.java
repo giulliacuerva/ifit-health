@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
+
 public class EnrollmentActivity {
     private final UUID id;
     private final ActivityClass activityClass;
@@ -23,16 +24,15 @@ public class EnrollmentActivity {
         this.startDate = LocalDate.now();
     }
 
-    public void deactivate(LocalDate endDate) {
-        if (endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("End date cannot be before enrollment start date");
-        }
+    public void deactivate() {
         if (!active) {
             throw new EnrollmentActivityAlreadyInactiveException("Enrollment activity is already inactive");
         }
-        this.endDate = endDate;
+        this.endDate = LocalDate.now();
         this.active = false;
     }
+
+    public boolean isActive() { return active; }
 
     public UUID getId() {
         return id;
