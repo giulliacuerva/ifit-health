@@ -23,7 +23,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,11 +36,13 @@ public class EnrollCustomerUseCaseTest {
     private EnrollmentRepository enrollmentRepo;
     private Customer customer;
     private Enrollment enrollment;
+    private Set<DayOfWeek> classDays;
 
     @BeforeEach
     public void setup(){
         customer = new Customer("teste", "teste@gmail.com");
         enrollment = new Enrollment(customer);
+        classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
     }
 
     @Test
@@ -49,9 +50,7 @@ public class EnrollCustomerUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should enroll customer in activity")
     void shouldEnrollCustomerInActivity() {
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass activityClass = createActivityClass(10, schedule);
+        ActivityClass activityClass = createActivityClass(10);
 
         List<EnrollmentActivity> enrollmentActivities = List.of();
 
@@ -74,10 +73,7 @@ public class EnrollCustomerUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("ShouldEnrollMultipleActivitiesInSameEnrollment")
     void shouldEnrollMultipleActivitiesInSameEnrollment() {
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass activityClass = createActivityClass(10, schedule);
-
+        ActivityClass activityClass = createActivityClass(10);
         Set<DayOfWeek> anotherClassDays = Set.of(DayOfWeek.THURSDAY);
         Schedule anotherSchedule = new Schedule(anotherClassDays, LocalTime.of(11, 0), LocalTime.of(12, 0));
         ActivityClass anotherActivityClass = createActivityClass(20, anotherSchedule);
@@ -104,9 +100,7 @@ public class EnrollCustomerUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should reject enrollment when activity is full")
     void shouldRejectEnrollmentWhenActivityIsFull() {
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
-        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
-        ActivityClass activityClass = createActivityClass(1, schedule);
+        ActivityClass activityClass = createActivityClass(1);
 
         EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("200.00"));
 
@@ -120,12 +114,20 @@ public class EnrollCustomerUseCaseTest {
         verify(enrollmentRepo, never()).save(enrollment);
     }
 
-    private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
+    private ActivityClass createActivityClass(int activityCapacity) {
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
         Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
         return new ActivityClass(
                 room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00")
         );
+    }
+
+    private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
+        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
+        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
+        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
     }
 }
