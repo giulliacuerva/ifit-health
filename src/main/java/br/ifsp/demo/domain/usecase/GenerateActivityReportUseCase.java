@@ -1,6 +1,7 @@
 package br.ifsp.demo.domain.usecase;
 
 import br.ifsp.demo.domain.model.EnrollmentActivity;
+import br.ifsp.demo.domain.model.Sport;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.domain.usecase.dto.ActivityReport;
 import br.ifsp.demo.domain.usecase.dto.ActivityReportItem;
@@ -21,6 +22,21 @@ public class GenerateActivityReportUseCase {
     public ActivityReport generate(LocalDate startDate, LocalDate endDate) {
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                         .findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate);
+        return getActivityReport(startDate, endDate, enrollmentActivities);
+    }
+
+    public ActivityReport generate(LocalDate startDate, LocalDate endDate, Sport sport) {
+        List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, sport);
+
+        return createReport(startDate, endDate, enrollmentActivities);
+    }
+
+    private ActivityReport createReport(LocalDate startDate, LocalDate endDate, List<EnrollmentActivity> enrollmentActivities) {
+        return getActivityReport(startDate, endDate, enrollmentActivities);
+    }
+
+    private ActivityReport getActivityReport(LocalDate startDate, LocalDate endDate, List<EnrollmentActivity> enrollmentActivities) {
         List<ActivityReportItem> items = new ArrayList<>();
 
         for (EnrollmentActivity enrollmentActivity : enrollmentActivities) {
