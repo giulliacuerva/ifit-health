@@ -9,6 +9,7 @@ import br.ifsp.demo.domain.usecase.dto.ActivityReportItem;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -42,25 +43,47 @@ public class GenerateActivityReportUseCase {
             );
 
             if (item != null) {
-                item.addEnrollment(enrollmentActivity.getMonthlyFee());
+                int activeMonths = calculateActiveMonths(
+                        enrollmentActivity,
+                        startDate,
+                        endDate
+                );
+
+                for (int i = 0; i < activeMonths; i++) {
+                    item.addEnrollment(enrollmentActivity.getMonthlyFee());
+                }
             }
         }
 
         return new ActivityReport(startDate, endDate, items);
     }
 
-    public ActivityReport generate(LocalDate startDate, LocalDate endDate, Sport sport) {
+    public ActivityReport generate(
+            LocalDate startDate,
+            LocalDate endDate,
+            Sport sport) {
+
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(
-                        startDate, endDate, sport);
+                        startDate,
+                        endDate,
+                        sport
+                );
 
         return createReport(startDate, endDate, enrollmentActivities);
     }
 
-    public ActivityReport generate(LocalDate startDate, LocalDate endDate, DayOfWeek dayOfWeek) {
+    public ActivityReport generate(
+            LocalDate startDate,
+            LocalDate endDate,
+            DayOfWeek dayOfWeek) {
+
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(
-                        startDate, endDate, dayOfWeek);
+                        startDate,
+                        endDate,
+                        dayOfWeek
+                );
 
         return createReport(startDate, endDate, enrollmentActivities);
     }
@@ -73,14 +96,21 @@ public class GenerateActivityReportUseCase {
 
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(
-                        startDate, endDate, sport);
+                        startDate,
+                        endDate,
+                        sport
+                );
 
         enrollmentActivities = filterByDayOfWeek(
                 enrollmentActivities,
                 dayOfWeek
         );
 
-        return createReport(startDate, endDate, enrollmentActivities);
+        return createReport(
+                startDate,
+                endDate,
+                enrollmentActivities
+        );
     }
 
     private List<EnrollmentActivity> filterByDayOfWeek(
@@ -139,6 +169,31 @@ public class GenerateActivityReportUseCase {
                 endDate,
                 items
         );
+    }
+
+    private int calculateActiveMonths(
+            EnrollmentActivity enrollmentActivity,
+            LocalDate startDate,
+            LocalDate endDate) {
+
+        LocalDate activeStart = enrollmentActivity.getStartDate();
+
+        LocalDate activeEnd = enrollmentActivity.getEndDate() != null
+                ? enrollmentActivity.getEndDate()
+                : endDate;
+
+        if (activeStart.isBefore(startDate)) {
+            activeStart = startDate;
+        }
+
+        if (activeEnd.isAfter(endDate)) {
+            activeEnd = endDate;
+        }
+
+        return (int) ChronoUnit.MONTHS.between(
+                activeStart.withDayOfMonth(1),
+                activeEnd.withDayOfMonth(1)
+        ) + 1;
     }
 
     private ActivityReportItem findItem(
