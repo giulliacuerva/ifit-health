@@ -4,6 +4,7 @@ import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.exception.ActivityScheduleConflictException;
 import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -112,6 +113,96 @@ public class EnrollCustomerUseCaseTest {
                 .isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
 
         verify(enrollmentRepo, never()).save(enrollment);
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when activity conflicts with customer schedule")
+    void shouldRejectEnrollmentWhenActivityConflictsWithCustomerSchedule() {
+        Set<DayOfWeek> activityDays = Set.of(DayOfWeek.MONDAY);
+        Schedule existingSchedule = new Schedule(activityDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass existingActivity = createActivityClass(10, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(activityDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(enrollment);
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when selected activities have conflicting schedules")
+    void shouldRejectEnrollmentWhenSelectedActivitiesHaveConflictingSchedules() {
+        Set<DayOfWeek> ActivityDays = Set.of(DayOfWeek.MONDAY);
+        Schedule firstSchedule = new Schedule(ActivityDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass activity = createActivityClass(10, firstSchedule);
+
+        Schedule secondSchedule = new Schedule(ActivityDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
+        ActivityClass anotherActivity = createActivityClass(10, secondSchedule);
+
+        when(activityClassRepo.findById(activity.getId())).thenReturn(activity);
+        when(activityClassRepo.findById(anotherActivity.getId())).thenReturn(anotherActivity);
+
+        when(enrollmentRepo.findActivitiesByActivityClass(activity)).thenReturn(List.of());
+        when(enrollmentRepo.findActivitiesByActivityClass(anotherActivity)).thenReturn(List.of());
+
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should rejected enrollment when customer is already enrolled in activity")
+    void shouldRejectedEnrollmentWhenCustomerIsAlreadyEnrolledInActivity() {
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(10, schedule);
+        enrollment.addActivity(activityClass);
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("The customer is already enrolled in this activity");
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when activity is inactive")
+    void shouldRejectEnrollmentWhenActivityIsInactive() {
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass activityClass = createActivityClass(10, schedule);
+        activityClass.deactivate();
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("The activity is inactive");
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
 
     @Test
