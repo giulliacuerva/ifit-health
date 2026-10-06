@@ -72,4 +72,31 @@ public class ScheduleTest {
         assertThatThrownBy(() -> new Schedule(classDays, LocalTime.parse(start), LocalTime.parse(end)))
                 .isInstanceOf(InvalidScheduleException.class);
     }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create Schedule when weekdays is null")
+    void shouldNotCreateScheduleWhenWeekdaysIsNull() {
+        assertThatThrownBy(() -> new Schedule(null, LocalTime.of(10, 0), LocalTime.of(11, 0)))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create Schedule when start time is null")
+    void shouldNotCreateScheduleWhenStartTimeIsNull() {
+        assertThatThrownBy(() -> new Schedule(classDays, null, LocalTime.of(11, 0)))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create Schedule when end time is null")
+    void shouldNotCreateScheduleWhenEndTimeIsNull() {
+        assertThatThrownBy(() -> new Schedule(classDays, LocalTime.of(10, 0), null))
+                .isInstanceOf(NullPointerException.class);
+    }
 }
