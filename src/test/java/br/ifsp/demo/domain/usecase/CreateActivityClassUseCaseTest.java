@@ -116,4 +116,21 @@ public class CreateActivityClassUseCaseTest {
         assertThatThrownBy(() -> sut.createNewActivityClass(room, sport, trainer, schedule, differentCapacity, new BigDecimal("250.00")))
                 .isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
     }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should create ActivityClass when same trainer is available at a different period")
+    void shouldCreateActivityClassWhenSameTrainerIsAvailableAtDifferentPeriod() {
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
+        Schedule newSchedule = new Schedule(classDays, LocalTime.of(12, 0), LocalTime.of(13, 0));
+        ActivityClass anotherActivityClass = new ActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(existingActivityClass));
+        when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(anotherActivityClass);
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
+        assertThat(result).isEqualTo(anotherActivityClass);
+        verify(activityClassRepo).save(any(ActivityClass.class));
+    }
+
+
 }
