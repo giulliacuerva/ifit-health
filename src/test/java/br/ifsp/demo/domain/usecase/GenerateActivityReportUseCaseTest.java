@@ -61,6 +61,9 @@ class GenerateActivityReportUseCaseTest {
         EnrollmentActivity enrollmentActivity1 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"));
         EnrollmentActivity enrollmentActivity2 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"));
 
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass));
+
         when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate))
                 .thenReturn(List.of(enrollmentActivity1, enrollmentActivity2));
 
@@ -213,6 +216,36 @@ class GenerateActivityReportUseCaseTest {
         assertThat(item.getRevenue()).isEqualByComparingTo("0.00");
     }
 
+    @Test
+    @DisplayName("Should calculate revenue for months in which enrollment was active")
+    void shouldCalculateRevenueForMonthsEnrollmentWasActive() {
+        LocalDate startDate = LocalDate.of(2026, 9, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
 
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(
+                activityClass,
+                new BigDecimal("180.00"),
+                LocalDate.of(2026, 9, 1)
+        );
+
+        enrollmentActivity.deactivate(
+                LocalDate.of(2026, 10, 15)
+        );
+
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass));
+
+        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(
+                startDate,
+                endDate
+        )).thenReturn(List.of(enrollmentActivity));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getRevenue())
+                .isEqualByComparingTo("360.00");
+    }
 }
 
