@@ -40,6 +40,20 @@ public class GenerateActivityReportUseCase {
         return createReport(startDate, endDate, enrollmentActivities);
     }
 
+    public ActivityReport generate(LocalDate startDate, LocalDate endDate, Sport sport, DayOfWeek dayOfWeek) {
+        List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, sport);
+        enrollmentActivities = filterByDayOfWeek(enrollmentActivities, dayOfWeek);
+
+        return createReport(startDate, endDate, enrollmentActivities);
+    }
+
+    private List<EnrollmentActivity> filterByDayOfWeek(List<EnrollmentActivity> enrollmentActivities, DayOfWeek dayOfWeek) {
+        return enrollmentActivities.stream()
+                .filter(enrollmentActivity -> enrollmentActivity.getActivityClass().getSchedule().getWeekdays().contains(dayOfWeek))
+                .toList();
+    }
+
     private ActivityReport createReport(LocalDate startDate, LocalDate endDate, List<EnrollmentActivity> enrollmentActivities) {
         return getActivityReport(startDate, endDate, enrollmentActivities);
     }
