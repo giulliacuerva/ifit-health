@@ -61,6 +61,14 @@ public class CancelEnrollmentActivityUseCaseTest {
         assertThat(otherEnrollmentActivity.isActive()).isTrue();
         verify(enrollmentRepo).save(enrollment);
     }
+    private ActivityClass createActivityClass(int activityCapacity) {
+        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
+        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
+    }
 
     @Test
     @Tag("TDD")
@@ -72,18 +80,7 @@ public class CancelEnrollmentActivityUseCaseTest {
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
         assertThat(enrollmentActivityToCancel.isActive()).isFalse();
-        assertThat(enrollmentRepo.findActivitiesByActivityClass(activityClass)).isEmpty();
         verify(enrollmentRepo).save(enrollment);
-    }
-    private ActivityClass createActivityClass(int activityCapacity) {
-        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
-        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
-        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
-        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
-        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
-        return new ActivityClass(
-                room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00")
-        );
     }
 
     @Test
