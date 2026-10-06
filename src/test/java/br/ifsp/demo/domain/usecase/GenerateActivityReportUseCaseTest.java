@@ -12,7 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
+import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -30,6 +30,9 @@ class GenerateActivityReportUseCaseTest {
 
     @Mock
     private EnrollmentRepository enrollmentRepository;
+    @Mock
+    private ActivityClassRepository activityClassRepository;
+
     @InjectMocks
     private GenerateActivityReportUseCase sut;
     private ActivityClass activityClass;
@@ -186,4 +189,30 @@ class GenerateActivityReportUseCaseTest {
         Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
         return new ActivityClass(room, sport, trainer, schedule, activityCapacity, monthlyFee);
     }
+
+    @Test
+    @DisplayName("Should include activities without enrollments with zero count and revenue")
+    void shouldIncludeActivitiesWithoutEnrollments() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass));
+
+        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate))
+                .thenReturn(List.of());
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems()).hasSize(1);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getActivityClass()).isEqualTo(activityClass);
+        assertThat(item.getEnrollmentCount()).isZero();
+        assertThat(item.getRevenue()).isEqualByComparingTo("0.00");
+    }
+
+
 }
+
