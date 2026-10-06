@@ -141,6 +141,39 @@ class GenerateActivityReportUseCaseTest {
         verify(enrollmentRepository).findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter);
     }
 
+    @Test
+    @DisplayName(
+            "Should generate report only with activities that match sport and day filters"
+    )
+    void shouldGenerateReportWithSportAndDayFilters() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+        DayOfWeek dayFilter = DayOfWeek.MONDAY;
+
+        EnrollmentActivity swimmingMondayEnrollment = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
+        EnrollmentActivity judoTuesdayEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
+
+        when(enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
+                .thenReturn(List.of(swimmingMondayEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate, swimming, dayFilter);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStartDate()).isEqualTo(startDate);
+        assertThat(result.getEndDate()).isEqualTo(endDate);
+        assertThat(result.getItems()).hasSize(1);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getActivityClass()).isEqualTo(swimmingActivity);
+        assertThat(item.getEnrollmentCount()).isEqualTo(1);
+        assertThat(item.getRevenue()).isEqualByComparingTo("180.00");
+
+        verify(enrollmentRepository).findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
+    }
+
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
