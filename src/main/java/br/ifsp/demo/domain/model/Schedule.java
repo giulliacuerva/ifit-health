@@ -13,9 +13,15 @@ public class Schedule {
     private final LocalTime startTime;
     private final LocalTime endTime;
 
+    private static final LocalTime MIN_TIME = LocalTime.of(6, 0);
+    private static final LocalTime MAX_TIME = LocalTime.of(22, 0);
+
     public Schedule(Set<DayOfWeek> weekdays,LocalTime startTime,LocalTime endTime) {
         if (!endTime.isAfter(startTime)) {
             throw new InvalidScheduleException("End time must be after start time");
+        }
+        if (startTime.isBefore(MIN_TIME) || endTime.isAfter(MAX_TIME)) {
+            throw new InvalidScheduleException("Schedule must be between 06:00 and 22:00");
         }
         this.weekdays = weekdays;
         this.startTime = startTime;
