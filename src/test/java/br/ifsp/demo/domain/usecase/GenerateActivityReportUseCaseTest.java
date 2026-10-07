@@ -247,5 +247,45 @@ class GenerateActivityReportUseCaseTest {
         assertThat(item.getRevenue())
                 .isEqualByComparingTo("360.00");
     }
+
+    @Test
+    @DisplayName("Should keep closed period report unchanged after later enrollment cancellation")
+    void shouldKeepClosedPeriodReportUnchangedAfterLaterCancellation() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(
+                activityClass,
+                new BigDecimal("180.00"),
+                LocalDate.of(2026, 10, 1)
+        );
+
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass));
+
+        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(
+                startDate,
+                endDate
+        ))
+                .thenReturn(List.of(enrollmentActivity))
+                .thenReturn(List.of());
+
+        ActivityReport reportBeforeCancellation =
+                sut.generate(startDate, endDate);
+
+        enrollmentActivity.deactivate(
+                LocalDate.of(2026, 11, 5)
+        );
+
+        ActivityReport reportAfterCancellation =
+                sut.generate(startDate, endDate);
+
+        assertThat(reportBeforeCancellation.getItems().getFirst().getRevenue())
+                .isEqualByComparingTo("180.00");
+
+        assertThat(reportAfterCancellation.getItems().getFirst().getRevenue())
+                .isEqualByComparingTo("180.00");
+    }
+
 }
 
