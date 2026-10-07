@@ -9,6 +9,7 @@ import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 
 public class CreateActivityClassUseCase {
@@ -19,6 +20,12 @@ public class CreateActivityClassUseCase {
     }
 
     public ActivityClass createNewActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee) {
+        Objects.requireNonNull(room, "Room cannot be null");
+        Objects.requireNonNull(sport, "Sport cannot be null");
+        Objects.requireNonNull(trainer, "Trainer cannot be null");
+        Objects.requireNonNull(schedule, "Schedule cannot be null");
+        Objects.requireNonNull(monthlyFee, "Monthly fee cannot be null");
+
         validateRoomConflict(room, schedule);
         validateTrainerConflict(trainer, schedule);
         validateRoomType(room, sport);
