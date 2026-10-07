@@ -11,6 +11,7 @@ import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.exception.EnrollmentActivityAlreadyInactiveException;
 
+import br.ifsp.demo.exception.EnrollmentActivityNotFoundException;
 import org.mockito.Mock;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -114,5 +115,15 @@ public class CancelEnrollmentActivityUseCaseTest {
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         assertThatThrownBy(() -> sut.cancelActivity(customer, enrollmentActivity.getId()))
                 .isInstanceOf(EnrollmentActivityAlreadyInactiveException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @DisplayName("Should not cancel activity when enrollment activity is not found")
+    void shouldNotCancelActivityWhenEnrollmentActivityIsNotFound() {
+        UUID invalidActivityId = UUID.randomUUID();
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        assertThatThrownBy(() -> sut.cancelActivity(customer, invalidActivityId))
+                .isInstanceOf(EnrollmentActivityNotFoundException.class);
     }
 }
