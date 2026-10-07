@@ -273,4 +273,69 @@ public class CreateActivityClassUseCaseTest {
         ).isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
 
     }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should create ActivityClass when same trainer is available at a different period")
+    void shouldCreateActivityClassWhenSameTrainerIsAvailableAtDifferentPeriod() {
+        ActivityClass existingActivityClass = new ActivityClass(room, sport, trainer, existingSchedule, 10, new BigDecimal("250.00"));
+        Schedule newSchedule = new Schedule(classDays, LocalTime.of(12, 0), LocalTime.of(13, 0));
+        ActivityClass anotherActivityClass = new ActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(existingActivityClass));
+        when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(anotherActivityClass);
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, newSchedule, 10, new BigDecimal("250.00"));
+        assertThat(result).isEqualTo(anotherActivityClass);
+        verify(activityClassRepo).save(any(ActivityClass.class));
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when room is null")
+    void shouldNotCreateActivityClassWhenRoomIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(null, sport, trainer, schedule, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when sport is null")
+    void shouldNotCreateActivityClassWhenSportIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, null, trainer, schedule, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when trainer is null")
+    void shouldNotCreateActivityClassWhenTrainerIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, null, schedule, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when schedule is null")
+    void shouldNotCreateActivityClassWhenScheduleIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, trainer, null, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when monthly fee is null")
+    void shouldNotCreateActivityClassWhenMonthlyFeeIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, trainer, schedule, 10, null))
+                .isInstanceOf(NullPointerException.class);
+    }
 }
