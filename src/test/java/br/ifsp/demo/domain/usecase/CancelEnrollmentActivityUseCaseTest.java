@@ -119,6 +119,7 @@ public class CancelEnrollmentActivityUseCaseTest {
 
     @Test
     @Tag("Functional")
+    @Tag("UnitTest")
     @DisplayName("Should not cancel activity when enrollment activity is not found")
     void shouldNotCancelActivityWhenEnrollmentActivityIsNotFound() {
         UUID invalidActivityId = UUID.randomUUID();
