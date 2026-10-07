@@ -6,13 +6,13 @@ import java.util.UUID;
 
 
 public class ActivityClass {
-    private final UUID id;
-    private final Room room;
-    private final Sport sport;
-    private final Trainer trainer;
-    private final Schedule schedule;
-    private final int capacity;
-    private final BigDecimal monthlyFee;
+    private UUID id;
+    private Room room;
+    private Sport sport;
+    private Trainer trainer;
+    private Schedule schedule;
+    private int capacity;
+    private BigDecimal monthlyFee;
     private boolean active;
 
     public ActivityClass(Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee) {
@@ -69,6 +69,22 @@ public class ActivityClass {
     @Override
     public int hashCode() {
         return Objects.hash(id, room, sport, trainer, schedule, capacity, monthlyFee);
+    }
+
+    public void edit(
+            Room room,
+            Sport sport,
+            Trainer trainer,
+            Schedule schedule,
+            int capacity,
+            BigDecimal monthlyFee
+    ) {
+        this.room = room;
+        this.sport = sport;
+        this.trainer = trainer;
+        this.schedule = schedule;
+        this.capacity = capacity;
+        this.monthlyFee = monthlyFee;
     }
 
     public boolean isActive() {
