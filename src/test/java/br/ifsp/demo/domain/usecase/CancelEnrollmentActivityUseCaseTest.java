@@ -60,6 +60,7 @@ public class CancelEnrollmentActivityUseCaseTest {
 
         assertThat(enrollmentActivityToCancel.isActive()).isFalse();
         assertThat(otherEnrollmentActivity.isActive()).isTrue();
+        assertThat(enrollment.isActive()).isTrue();
         verify(enrollmentRepo).save(enrollment);
     }
     private ActivityClass createActivityClass(int activityCapacity) {
