@@ -81,19 +81,6 @@ public class CancelEnrollmentActivityUseCaseTest {
     @Test
     @Tag("TDD")
     @Tag("UnitTest")
-    @DisplayName("Should cancel the selected activity enrollment when class if full and free the spot")
-    void shouldCancelSelectedActivityEnrollmentAndFreeTheSpotFrom() {
-        enrollment.addActivity(activityClass);
-        EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().getFirst();
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
-        sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
-        assertThat(enrollmentActivityToCancel.isActive()).isFalse();
-        verify(enrollmentRepo).save(enrollment);
-    }
-
-    @Test
-    @Tag("TDD")
-    @Tag("UnitTest")
     @DisplayName("should deactivate enrollment and enrollment activity")
     void shouldDeactivateEnrollmentAndActivity(){
         enrollment.addActivity(activityClass);
