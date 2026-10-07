@@ -1,6 +1,7 @@
 package br.ifsp.demo.domain.model;
 
 import br.ifsp.demo.exception.ActivityScheduleConflictException;
+import br.ifsp.demo.exception.EnrollmentActivityNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +54,8 @@ public class Enrollment {
         EnrollmentActivity enrollmentActivity = enrollmentActivities.stream()
                 .filter(activity -> activity.getId()
                         .equals(activityId))
-                        .findFirst().orElseThrow();
+                .findFirst().orElseThrow(() -> new EnrollmentActivityNotFoundException("Enrollment activity not found"));
+
         enrollmentActivity.deactivate();
     }
 

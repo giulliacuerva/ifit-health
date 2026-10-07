@@ -11,6 +11,8 @@ import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.exception.EnrollmentActivityAlreadyInactiveException;
 
+import br.ifsp.demo.exception.EnrollmentActivityNotFoundException;
+import br.ifsp.demo.exception.EnrollmentNotFoundException;
 import org.mockito.Mock;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -59,6 +61,7 @@ public class CancelEnrollmentActivityUseCaseTest {
 
         assertThat(enrollmentActivityToCancel.isActive()).isFalse();
         assertThat(otherEnrollmentActivity.isActive()).isTrue();
+        assertThat(enrollment.isActive()).isTrue();
         verify(enrollmentRepo).save(enrollment);
     }
     private ActivityClass createActivityClass(int activityCapacity) {
@@ -74,19 +77,6 @@ public class CancelEnrollmentActivityUseCaseTest {
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
         Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
         return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
-    }
-
-    @Test
-    @Tag("TDD")
-    @Tag("UnitTest")
-    @DisplayName("Should cancel the selected activity enrollment when class if full and free the spot")
-    void shouldCancelSelectedActivityEnrollmentAndFreeTheSpotFrom() {
-        enrollment.addActivity(activityClass);
-        EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().getFirst();
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
-        sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
-        assertThat(enrollmentActivityToCancel.isActive()).isFalse();
-        verify(enrollmentRepo).save(enrollment);
     }
 
     @Test
@@ -114,5 +104,27 @@ public class CancelEnrollmentActivityUseCaseTest {
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
         assertThatThrownBy(() -> sut.cancelActivity(customer, enrollmentActivity.getId()))
                 .isInstanceOf(EnrollmentActivityAlreadyInactiveException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not cancel activity when enrollment activity is not found")
+    void shouldNotCancelActivityWhenEnrollmentActivityIsNotFound() {
+        UUID invalidActivityId = UUID.randomUUID();
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        assertThatThrownBy(() -> sut.cancelActivity(customer, invalidActivityId))
+                .isInstanceOf(EnrollmentActivityNotFoundException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not cancel activity when customer has no enrollment")
+    void shouldNotCancelActivityWhenCustomerHasNoEnrollment() {
+        UUID activityId = UUID.randomUUID();
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(null);
+        assertThatThrownBy(() -> sut.cancelActivity(customer, activityId))
+                .isInstanceOf(EnrollmentNotFoundException.class);
     }
 }
