@@ -287,5 +287,40 @@ class GenerateActivityReportUseCaseTest {
                 .isEqualByComparingTo("180.00");
     }
 
+
+    @Test
+    @DisplayName("Should calculate average occupancy when enrollment count varies during the period")
+    void shouldCalculateAverageOccupancyWhenEnrollmentCountVaries() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity enrollment1 = new EnrollmentActivity(
+                activityClass,
+                new BigDecimal("180.00"),
+                LocalDate.of(2026, 10, 1)
+        );
+
+        EnrollmentActivity enrollment2 = new EnrollmentActivity(
+                activityClass,
+                new BigDecimal("180.00"),
+                LocalDate.of(2026, 10, 15)
+        );
+
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass));
+
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(
+                startDate,
+                endDate
+        )).thenReturn(List.of(enrollment1, enrollment2));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getAverageOccupancy())
+                .isEqualByComparingTo("15.00");
+    }
+
 }
 
