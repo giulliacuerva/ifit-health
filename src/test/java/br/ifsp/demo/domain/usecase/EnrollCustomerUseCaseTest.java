@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,6 +50,32 @@ public class EnrollCustomerUseCaseTest {
     @Test
     @Tag("TDD")
     @Tag("UnitTest")
+    @DisplayName("Should create enrollment when customer has no enrollment")
+    void shouldCreateEnrollmentWhenCustomerHasNoEnrollment() {
+        Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+
+        ActivityClass activityClass = createActivityClass(10, schedule);
+
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.empty());
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.save(any(Enrollment.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Enrollment result = sut.enroll(customer, List.of(activityClass.getId()));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getCustomer()).isEqualTo(customer);
+        assertThat(result.getEnrollmentActivities()).hasSize(1);
+
+        verify(enrollmentRepo).findByCustomer(customer);
+        verify(enrollmentRepo).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should enroll customer in activity")
     void shouldEnrollCustomerInActivity() {
         ActivityClass activityClass = createActivityClass(10);
@@ -56,8 +83,8 @@ public class EnrollCustomerUseCaseTest {
         List<EnrollmentActivity> enrollmentActivities = List.of();
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(enrollmentActivities);
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(enrollmentActivities);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
         when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
         Enrollment result = sut.enroll(customer, List.of(activityClass.getId()));
@@ -82,9 +109,9 @@ public class EnrollCustomerUseCaseTest {
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
         when(activityClassRepo.findById(anotherActivityClass.getId())).thenReturn(anotherActivityClass);
 
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findActivitiesByActivityClass(anotherActivityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(anotherActivityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
         when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
         Enrollment result = sut.enroll(customer, List.of(activityClass.getId(),anotherActivityClass.getId()));
@@ -106,7 +133,7 @@ public class EnrollCustomerUseCaseTest {
         EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("200.00"));
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
                 .thenReturn(List.of(enrollmentActivity));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
@@ -129,8 +156,8 @@ public class EnrollCustomerUseCaseTest {
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -152,11 +179,9 @@ public class EnrollCustomerUseCaseTest {
 
         when(activityClassRepo.findById(activity.getId())).thenReturn(activity);
         when(activityClassRepo.findById(anotherActivity.getId())).thenReturn(anotherActivity);
-
-        when(enrollmentRepo.findActivitiesByActivityClass(activity)).thenReturn(List.of());
-        when(enrollmentRepo.findActivitiesByActivityClass(anotherActivity)).thenReturn(List.of());
-
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activity)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(anotherActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -175,8 +200,8 @@ public class EnrollCustomerUseCaseTest {
         enrollment.addActivity(activityClass);
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
                 .isInstanceOf(IllegalStateException.class)
@@ -196,7 +221,7 @@ public class EnrollCustomerUseCaseTest {
         activityClass.deactivate();
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
                 .isInstanceOf(IllegalStateException.class)

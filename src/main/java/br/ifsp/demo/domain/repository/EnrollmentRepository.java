@@ -5,9 +5,12 @@ import br.ifsp.demo.domain.model.*;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface EnrollmentRepository {
     Enrollment save(Enrollment enrollment);
+    List<EnrollmentActivity> findEnrolledActivitiesByActivityClass(ActivityClass activityClass);
+    Optional<Enrollment> findByCustomer(Customer customer);
 
     List<EnrollmentActivity> findActivitiesByActivityClass(
             ActivityClass activityClass
