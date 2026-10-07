@@ -132,5 +132,53 @@ public class CreateActivityClassUseCaseTest {
         verify(activityClassRepo).save(any(ActivityClass.class));
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when room is null")
+    void shouldNotCreateActivityClassWhenRoomIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(null, sport, trainer, schedule, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when sport is null")
+    void shouldNotCreateActivityClassWhenSportIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, null, trainer, schedule, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when trainer is null")
+    void shouldNotCreateActivityClassWhenTrainerIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, null, schedule, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when schedule is null")
+    void shouldNotCreateActivityClassWhenScheduleIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, trainer, null, 10, new BigDecimal("250.00")))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when monthly fee is null")
+    void shouldNotCreateActivityClassWhenMonthlyFeeIsNull() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, trainer, schedule, 10, null))
+                .isInstanceOf(NullPointerException.class);
+    }
 }
