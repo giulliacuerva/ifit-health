@@ -28,7 +28,7 @@ public class GenerateActivityReportUseCase {
 
     public ActivityReport generate(LocalDate startDate, LocalDate endDate) {
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
-                .findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate);
+                .findEnrollmentActivitiesByPeriod(startDate, endDate);
 
         List<ActivityReportItem> items = new ArrayList<>();
 

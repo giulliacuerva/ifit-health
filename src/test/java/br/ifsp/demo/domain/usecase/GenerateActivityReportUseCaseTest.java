@@ -263,12 +263,12 @@ class GenerateActivityReportUseCaseTest {
         when(activityClassRepository.findAll())
                 .thenReturn(List.of(activityClass));
 
-        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(
                 startDate,
                 endDate
         ))
                 .thenReturn(List.of(enrollmentActivity))
-                .thenReturn(List.of());
+                .thenReturn(List.of(enrollmentActivity));
 
         ActivityReport reportBeforeCancellation =
                 sut.generate(startDate, endDate);
