@@ -26,6 +26,42 @@ public class GenerateActivityReportUseCase {
         this.activityClassRepository = activityClassRepository;
     }
 
+    private void calculateAverageOccupancy(
+            ActivityReportItem item,
+            List<EnrollmentActivity> enrollmentActivities,
+            LocalDate startDate,
+            LocalDate endDate) {
+
+        List<LocalDate> changeDates = new ArrayList<>();
+
+        changeDates.add(startDate);
+
+        for (EnrollmentActivity enrollmentActivity : enrollmentActivities) {
+            LocalDate enrollmentStart = enrollmentActivity.getStartDate();
+
+            if (enrollmentStart.isAfter(startDate)
+                    && !enrollmentStart.isAfter(endDate)) {
+                changeDates.add(enrollmentStart);
+            }
+        }
+
+        for (LocalDate date : changeDates) {
+            int activeEnrollments = (int) enrollmentActivities.stream()
+                    .filter(activity ->
+                            !activity.getStartDate().isAfter(date)
+                    )
+                    .filter(activity ->
+                            activity.getEndDate() == null
+                                    || activity.getEndDate().isAfter(date)
+                    )
+                    .count();
+
+            item.addOccupancy(activeEnrollments);
+        }
+
+        item.calculateAverageOccupancy();
+    }
+
     public ActivityReport generate(LocalDate startDate, LocalDate endDate) {
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findEnrollmentActivitiesByPeriod(startDate, endDate);
@@ -53,6 +89,15 @@ public class GenerateActivityReportUseCase {
                     item.addEnrollment(enrollmentActivity.getMonthlyFee());
                 }
             }
+        }
+
+        for (ActivityReportItem item : items) {
+            calculateAverageOccupancy(
+                    item,
+                    enrollmentActivities,
+                    startDate,
+                    endDate
+            );
         }
 
         return new ActivityReport(startDate, endDate, items);

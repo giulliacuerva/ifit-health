@@ -64,7 +64,7 @@ class GenerateActivityReportUseCaseTest {
         when(activityClassRepository.findAll())
                 .thenReturn(List.of(activityClass));
 
-        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate))
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
                 .thenReturn(List.of(enrollmentActivity1, enrollmentActivity2));
 
         ActivityReport result = sut.generate(startDate, endDate);
@@ -78,8 +78,10 @@ class GenerateActivityReportUseCaseTest {
         assertThat(item.getEnrollmentCount()).isEqualTo(2);
         assertThat(item.getRevenue()).isEqualByComparingTo("360.00");
 
-        verify(enrollmentRepository).findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate);
+        verify(enrollmentRepository).findEnrollmentActivitiesByPeriod(startDate, endDate);
+
     }
+
 
     @Test
     @DisplayName("Should generate report only with activities from selected sport")
@@ -202,7 +204,7 @@ class GenerateActivityReportUseCaseTest {
         when(activityClassRepository.findAll())
                 .thenReturn(List.of(activityClass));
 
-        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(startDate, endDate))
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
                 .thenReturn(List.of());
 
         ActivityReport result = sut.generate(startDate, endDate);
@@ -235,7 +237,7 @@ class GenerateActivityReportUseCaseTest {
         when(activityClassRepository.findAll())
                 .thenReturn(List.of(activityClass));
 
-        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetween(
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(
                 startDate,
                 endDate
         )).thenReturn(List.of(enrollmentActivity));
