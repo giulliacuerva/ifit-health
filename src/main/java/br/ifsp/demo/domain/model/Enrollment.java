@@ -33,6 +33,8 @@ public class Enrollment {
                 activityClass, activityClass.getMonthlyFee()
         );
         enrollmentActivities.add(enrollmentActivity);
+
+        if (!active) { activate(); }
     }
 
     private boolean hasActivity(ActivityClass activityClass) {
@@ -61,15 +63,13 @@ public class Enrollment {
 
     public boolean isActive() { return active; }
 
+    public void activate() { this.active = true; }
+
     public void deactivate() { this.active = false; }
 
-    public UUID getId() {
-        return id;
-    }
+    public UUID getId() { return id; }
 
-    public Customer getCustomer() {
-        return customer;
-    }
+    public Customer getCustomer() { return customer; }
 
     public List<EnrollmentActivity> getEnrollmentActivities() {
         return List.copyOf(enrollmentActivities);

@@ -233,12 +233,13 @@ public class EnrollCustomerUseCaseTest {
     @Test
     @Tag("TDD")
     @Tag("UnitTest")
-    @DisplayName("Should create a new enrollment activity when customer enrolls in the same activity again after cancellation")
-    void shouldCreateNewEnrollmentActivityAfterPreviousCancellation() {
+    @DisplayName("Should create a new enrollment activity and reactivate the enrollment when customer enrolls in the same activity again after cancellation")
+    void shouldCreateNewEnrollmentActivityAfterCancellation() {
         ActivityClass activityClass = createActivityClass(10);
         enrollment.addActivity(activityClass);
         EnrollmentActivity previousEnrollmentActivity = enrollment.getEnrollmentActivities().getFirst();
         previousEnrollmentActivity.deactivate();
+        enrollment.deactivate();
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
         when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
@@ -247,6 +248,7 @@ public class EnrollCustomerUseCaseTest {
         assertThat(enrollment.getEnrollmentActivities()).hasSize(2);
         assertThat(enrollment.getEnrollmentActivities().get(0).isActive()).isFalse();
         assertThat(enrollment.getEnrollmentActivities().get(1).isActive()).isTrue();
+        assertThat(enrollment.isActive()).isTrue();
     }
 
     private ActivityClass createActivityClass(int activityCapacity) {
