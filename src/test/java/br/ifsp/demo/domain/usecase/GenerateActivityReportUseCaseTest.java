@@ -396,6 +396,29 @@ class GenerateActivityReportUseCaseTest {
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should calculate revenue for all active months in the period")
+    void shouldCalculateRevenueForAllActiveMonthsInPeriod() {
+        LocalDate startDate = LocalDate.of(2026, 9, 1);
+        LocalDate endDate = LocalDate.of(2026, 11, 30);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass,
+                new BigDecimal("180.00"), LocalDate.of(2026, 9, 1));
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(enrollmentActivity));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getEnrollmentCount()).isEqualTo(3);
+        assertThat(item.getRevenue()).isEqualByComparingTo("540.00");
+    }
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
