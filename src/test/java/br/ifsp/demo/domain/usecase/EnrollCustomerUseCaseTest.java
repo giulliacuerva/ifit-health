@@ -185,6 +185,7 @@ public class EnrollCustomerUseCaseTest {
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
+        assertThat(enrollment.getEnrollmentActivities()).isEmpty();
 
         verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
@@ -249,6 +250,131 @@ public class EnrollCustomerUseCaseTest {
         assertThat(enrollment.getEnrollmentActivities().get(0).isActive()).isFalse();
         assertThat(enrollment.getEnrollmentActivities().get(1).isActive()).isTrue();
         assertThat(enrollment.isActive()).isTrue();
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should accept enrollment when schedules are exactly adjacent")
+    void shouldAcceptEnrollmentWhenSchedulesAreExactlyAdjacent() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+
+        ActivityClass existingActivity = createActivityClass(8, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
+
+        Enrollment result = sut.enroll(customer, List.of(newActivity.getId()));
+
+        assertThat(result.getEnrollmentActivities()).hasSize(2);
+
+        verify(enrollmentRepo).save(enrollment);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when new schedule overlaps existing schedule by one minute at the beginning")
+    void shouldRejectEnrollmentWhenNewScheduleOverlapsExistingScheduleByOneMinuteAtBeginning() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(10, 0));
+        ActivityClass existingActivity = createActivityClass(10, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(9, 59), LocalTime.of(11, 0));
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when new schedule overlaps existing schedule by one minute at the end")
+    void shouldRejectEnrollmentWhenNewScheduleOverlapsExistingScheduleByOneMinuteAtEnd() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(11, 0), LocalTime.of(12, 0));
+        ActivityClass existingActivity = createActivityClass(10, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 1));
+
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when new schedule is contained in existing schedule")
+    void shouldRejectEnrollmentWhenNewScheduleIsContainedInExistingSchedule() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(12, 0));
+        ActivityClass existingActivity = createActivityClass(10, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when new schedule contains existing schedule")
+    void shouldRejectEnrollmentWhenNewScheduleContainsExistingSchedule() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass existingActivity = createActivityClass(10, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(12, 0));
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
 
     private ActivityClass createActivityClass(int activityCapacity) {

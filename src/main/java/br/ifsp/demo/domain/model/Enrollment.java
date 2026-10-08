@@ -21,20 +21,41 @@ public class Enrollment {
     }
 
     public void addActivity(ActivityClass activityClass) {
-        if (hasActivity(activityClass)){
+        validateActivity(activityClass);
+        addEnrollmentActivity(activityClass);
+    }
+
+    public void addActivities(List<ActivityClass> activities) {
+        activities.forEach(this::validateActivity);
+        for (int i = 0; i < activities.size(); i++) {
+            for (int j = i + 1; j < activities.size(); j++) {
+                if (activities.get(i)
+                        .getSchedule()
+                        .conflictsWith(activities.get(j).getSchedule())) {
+
+                    throw new ActivityScheduleConflictException(
+                            "The selected activities have conflicting schedules"
+                    );
+                }
+            }
+        }
+        activities.forEach(this::addEnrollmentActivity);
+    }
+
+    private void addEnrollmentActivity(ActivityClass activityClass) {
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(
+                activityClass, activityClass.getMonthlyFee());
+        enrollmentActivities.add(enrollmentActivity);
+        if (!active) { activate(); }
+    }
+
+    private void validateActivity(ActivityClass activityClass) {
+        if (hasActivity(activityClass)) {
             throw new IllegalStateException("The customer is already enrolled in this activity");
         }
         if (hasScheduleConflict(activityClass)) {
-            throw new ActivityScheduleConflictException(
-                    "The activity conflicts with the customer's schedule"
-            );
+            throw new ActivityScheduleConflictException("The activity conflicts with the customer's schedule");
         }
-        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(
-                activityClass, activityClass.getMonthlyFee()
-        );
-        enrollmentActivities.add(enrollmentActivity);
-
-        if (!active) { activate(); }
     }
 
     private boolean hasActivity(ActivityClass activityClass) {
