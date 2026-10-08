@@ -185,6 +185,7 @@ public class EnrollCustomerUseCaseTest {
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
+        assertThat(enrollment.getEnrollmentActivities()).isEmpty();
 
         verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
