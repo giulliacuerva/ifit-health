@@ -38,7 +38,7 @@ public class EnrollCustomerUseCase {
                 throw new CapacityIsGreaterThanAcceptedException("The activity has no available vacancies");
             }
         }
-        for (ActivityClass activity : activities) {enrollment.addActivity(activity);}
+        enrollment.addActivities(activities);
 
         return enrollmentRepository.save(enrollment);
     }
