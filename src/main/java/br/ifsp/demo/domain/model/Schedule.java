@@ -36,6 +36,10 @@ public class Schedule {
         return startTime.isBefore(otherSchedule.endTime) && otherSchedule.startTime.isBefore(endTime);
     }
 
+    public Set<DayOfWeek> getWeekdays() {
+        return weekdays;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

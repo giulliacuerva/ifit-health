@@ -13,4 +13,5 @@ public interface ActivityClassRepository {
     ActivityClass findById(UUID activityClassId);
     Collection<ActivityClass> findByRoom(Room room);
     Collection<ActivityClass> findByTrainer(Trainer trainer);
+    Collection<ActivityClass> findAll();
 }

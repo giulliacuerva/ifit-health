@@ -17,8 +17,7 @@ public class CancelEnrollmentActivityUseCase {
     }
 
     public Enrollment cancelActivity(Customer customer, UUID activityId) {
-        Enrollment enrollment = enrollmentRepo.findByCustomer(customer);
-        if (enrollment == null) { throw new EnrollmentNotFoundException("Enrollment not found"); }
+        Enrollment enrollment = enrollmentRepo.findByCustomer(customer).orElseThrow(() -> new EnrollmentNotFoundException("Enrollment not found"));
         enrollment.cancelActivity(activityId);
         boolean isAllDeactivated = enrollment.getEnrollmentActivities()
                 .stream()

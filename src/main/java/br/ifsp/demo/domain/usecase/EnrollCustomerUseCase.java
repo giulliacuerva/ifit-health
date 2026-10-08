@@ -22,7 +22,8 @@ public class EnrollCustomerUseCase {
     }
 
     public Enrollment enroll(Customer customer, List<UUID> activityClassIds) {
-        Enrollment enrollment = enrollmentRepository.findByCustomer(customer);
+        Enrollment enrollment = enrollmentRepository.findByCustomer(customer)
+                .orElseGet(() -> new Enrollment(customer));
 
         List<ActivityClass> activities = activityClassIds.stream()
                 .map(activityClassRepository::findById)
@@ -32,8 +33,7 @@ public class EnrollCustomerUseCase {
             if (!activity.isActive()) {
                 throw new IllegalStateException("The activity is inactive");
             }
-            List<EnrollmentActivity> enrolled = enrollmentRepository.findActivitiesByActivityClass(activity);
-
+            List<EnrollmentActivity> enrolled = enrollmentRepository.findEnrolledActivitiesByActivityClass(activity);
             if (enrolled.size() >= activity.getCapacity()) {
                 throw new CapacityIsGreaterThanAcceptedException("The activity has no available vacancies");
             }

@@ -3,6 +3,7 @@ package br.ifsp.demo.domain.usecase;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -55,7 +56,7 @@ public class CancelEnrollmentActivityUseCaseTest {
         EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().get(0);
         EnrollmentActivity otherEnrollmentActivity = enrollment.getEnrollmentActivities().get(1);
 
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
 
         sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
 
@@ -86,7 +87,7 @@ public class CancelEnrollmentActivityUseCaseTest {
     void shouldDeactivateEnrollmentAndActivity(){
         enrollment.addActivity(activityClass);
         EnrollmentActivity enrollmentActivityToCancel = enrollment.getEnrollmentActivities().getFirst();
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
         sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
         assertThat(enrollmentActivityToCancel.isActive()).isFalse();
         assertThat(enrollment.isActive()).isFalse();
@@ -101,7 +102,7 @@ public class CancelEnrollmentActivityUseCaseTest {
         enrollment.addActivity(activityClass);
         EnrollmentActivity enrollmentActivity = enrollment.getEnrollmentActivities().getFirst();
         enrollmentActivity.deactivate();
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
         assertThatThrownBy(() -> sut.cancelActivity(customer, enrollmentActivity.getId()))
                 .isInstanceOf(EnrollmentActivityAlreadyInactiveException.class);
     }
@@ -112,7 +113,7 @@ public class CancelEnrollmentActivityUseCaseTest {
     @DisplayName("Should not cancel activity when enrollment activity is not found")
     void shouldNotCancelActivityWhenEnrollmentActivityIsNotFound() {
         UUID invalidActivityId = UUID.randomUUID();
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
         assertThatThrownBy(() -> sut.cancelActivity(customer, invalidActivityId))
                 .isInstanceOf(EnrollmentActivityNotFoundException.class);
     }
@@ -123,7 +124,7 @@ public class CancelEnrollmentActivityUseCaseTest {
     @DisplayName("Should not cancel activity when customer has no enrollment")
     void shouldNotCancelActivityWhenCustomerHasNoEnrollment() {
         UUID activityId = UUID.randomUUID();
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(null);
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> sut.cancelActivity(customer, activityId))
                 .isInstanceOf(EnrollmentNotFoundException.class);
     }
