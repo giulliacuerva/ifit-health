@@ -63,6 +63,8 @@ public class GenerateActivityReportUseCase {
     }
 
     public ActivityReport generate(LocalDate startDate, LocalDate endDate) {
+        validateDate(startDate, endDate);
+
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findEnrollmentActivitiesByPeriod(startDate, endDate);
 
@@ -103,10 +105,19 @@ public class GenerateActivityReportUseCase {
         return new ActivityReport(startDate, endDate, items);
     }
 
+    private static void validateDate(LocalDate startDate, LocalDate endDate) {
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException(
+                    "End date cannot be before start date"
+            );
+        }
+    }
+
     public ActivityReport generate(
             LocalDate startDate,
             LocalDate endDate,
             Sport sport) {
+        validateDate(startDate, endDate);
 
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(
@@ -122,6 +133,7 @@ public class GenerateActivityReportUseCase {
             LocalDate startDate,
             LocalDate endDate,
             DayOfWeek dayOfWeek) {
+        validateDate(startDate, endDate);
 
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(
@@ -138,6 +150,7 @@ public class GenerateActivityReportUseCase {
             LocalDate endDate,
             Sport sport,
             DayOfWeek dayOfWeek) {
+        validateDate(startDate, endDate);
 
         List<EnrollmentActivity> enrollmentActivities = enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(
@@ -175,6 +188,7 @@ public class GenerateActivityReportUseCase {
             LocalDate startDate,
             LocalDate endDate,
             List<EnrollmentActivity> enrollmentActivities) {
+        validateDate(startDate, endDate);
 
         return getActivityReport(
                 startDate,
@@ -187,6 +201,7 @@ public class GenerateActivityReportUseCase {
             LocalDate startDate,
             LocalDate endDate,
             List<EnrollmentActivity> enrollmentActivities) {
+        validateDate(startDate, endDate);
 
         List<ActivityReportItem> items = new ArrayList<>();
 
@@ -220,6 +235,7 @@ public class GenerateActivityReportUseCase {
             EnrollmentActivity enrollmentActivity,
             LocalDate startDate,
             LocalDate endDate) {
+        validateDate(startDate, endDate);
 
         LocalDate activeStart = enrollmentActivity.getStartDate();
 
