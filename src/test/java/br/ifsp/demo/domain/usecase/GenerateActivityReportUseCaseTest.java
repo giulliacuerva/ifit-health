@@ -349,6 +349,30 @@ class GenerateActivityReportUseCaseTest {
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not include activities from different day")
+    void shouldNotIncludeActivitiesFromDifferentDay() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+        DayOfWeek dayFilter = DayOfWeek.MONDAY;
+
+        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
+
+        when(enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter))
+                .thenReturn(List.of());
+
+        ActivityReport result = sut.generate(startDate, endDate, dayFilter);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getItems()).isEmpty();
+
+        verify(enrollmentRepository)
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter);
+    }
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
