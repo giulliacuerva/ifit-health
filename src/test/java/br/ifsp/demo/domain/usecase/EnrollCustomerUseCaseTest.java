@@ -303,6 +303,31 @@ public class EnrollCustomerUseCaseTest {
         verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when new schedule overlaps existing schedule by one minute at the end")
+    void shouldRejectEnrollmentWhenNewScheduleOverlapsExistingScheduleByOneMinuteAtEnd() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(11, 0), LocalTime.of(12, 0));
+        ActivityClass existingActivity = createActivityClass(10, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 1));
+
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+    }
+
     private ActivityClass createActivityClass(int activityCapacity) {
         Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
