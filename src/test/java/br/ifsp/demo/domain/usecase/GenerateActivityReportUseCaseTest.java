@@ -7,6 +7,7 @@ import br.ifsp.demo.domain.usecase.dto.ActivityReport;
 import br.ifsp.demo.domain.usecase.dto.ActivityReportItem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -53,6 +54,8 @@ class GenerateActivityReportUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should generate report with active enrollments in the period")
     void shouldGenerateReportWithActiveEnrollmentsInPeriod() {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
@@ -84,6 +87,8 @@ class GenerateActivityReportUseCaseTest {
 
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should generate report only with activities from selected sport")
     void shouldGenerateReportOnlyWithSelectedSport() {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
@@ -115,6 +120,8 @@ class GenerateActivityReportUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should generate report only with activities from selected day")
     void shouldGenerateReportOnlyWithSelectedDay() {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
@@ -150,6 +157,8 @@ class GenerateActivityReportUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName(
             "Should generate report only with activities that match sport and day filters"
     )
@@ -196,6 +205,8 @@ class GenerateActivityReportUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should include activities without enrollments with zero count and revenue")
     void shouldIncludeActivitiesWithoutEnrollments() {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
@@ -219,6 +230,8 @@ class GenerateActivityReportUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should calculate revenue for months in which enrollment was active")
     void shouldCalculateRevenueForMonthsEnrollmentWasActive() {
         LocalDate startDate = LocalDate.of(2026, 9, 1);
@@ -251,6 +264,8 @@ class GenerateActivityReportUseCaseTest {
     }
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should keep closed period report unchanged after later enrollment cancellation")
     void shouldKeepClosedPeriodReportUnchangedAfterLaterCancellation() {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
@@ -291,6 +306,8 @@ class GenerateActivityReportUseCaseTest {
 
 
     @Test
+    @Tag("TDD")
+    @Tag("UnitTest")
     @DisplayName("Should calculate average occupancy when enrollment count varies during the period")
     void shouldCalculateAverageOccupancyWhenEnrollmentCountVaries() {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
