@@ -244,7 +244,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.findByTrainer(trainer))
                 .thenReturn(List.of());
 
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
                 .thenReturn(List.of(enrollmentActivity));
 
         assertThatThrownBy(() -> sut.edit(
@@ -285,7 +285,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.findByTrainer(trainer))
                 .thenReturn(List.of());
 
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
                 .thenReturn(List.of(
                         enrollmentActivity1,
                         enrollmentActivity2,
@@ -343,7 +343,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.findByTrainer(trainer))
                 .thenReturn(List.of());
 
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass))
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
                 .thenReturn(List.of(enrollmentActivity));
 
         when(activityClassRepo.save(activityClass))

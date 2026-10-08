@@ -99,7 +99,7 @@ public class EditActivityClassUseCase {
             Schedule newSchedule
     ) {
         boolean conflict = enrollmentRepo
-                .findActivitiesByActivityClass(activityClass)
+                .findEnrolledActivitiesByActivityClass(activityClass)
                 .stream()
                 .anyMatch(enrollmentActivity ->
                         enrollmentActivity
@@ -120,7 +120,7 @@ public class EditActivityClassUseCase {
             int newCapacity
     ) {
         int enrolledStudents = enrollmentRepo
-                .findActivitiesByActivityClass(activityClass)
+                .findEnrolledActivitiesByActivityClass(activityClass)
                 .size();
 
         if (newCapacity < enrolledStudents) {

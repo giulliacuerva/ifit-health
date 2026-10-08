@@ -12,12 +12,6 @@ public interface EnrollmentRepository {
     List<EnrollmentActivity> findEnrolledActivitiesByActivityClass(ActivityClass activityClass);
     Optional<Enrollment> findByCustomer(Customer customer);
 
-    List<EnrollmentActivity> findActivitiesByActivityClass(
-            ActivityClass activityClass
-    );
-
-    Enrollment findByCustomer(Customer customer);
-
     List<EnrollmentActivity> findActiveEnrollmentActivitiesByStartDateBetween(
             LocalDate startDate,
             LocalDate endDate
