@@ -50,7 +50,7 @@ class GenerateActivityReportUseCaseTest {
         Schedule swimmingSchedule = new Schedule(Set.of(DayOfWeek.MONDAY), LocalTime.of(10, 0), LocalTime.of(11, 0));
         Schedule judoSchedule = new Schedule(Set.of(DayOfWeek.TUESDAY), LocalTime.of(14, 0), LocalTime.of(15, 0));
         swimmingActivity = createActivityClass(swimming, 10, swimmingSchedule, new BigDecimal("180.00"));
-        judoActivity = createActivityClass(judo, 10, judoSchedule, new BigDecimal("200.00"));
+        judoActivity = createActivityClass(judo, 8, judoSchedule, new BigDecimal("200.00"));
     }
 
     @Test
@@ -417,6 +417,29 @@ class GenerateActivityReportUseCaseTest {
 
         assertThat(item.getEnrollmentCount()).isEqualTo(3);
         assertThat(item.getRevenue()).isEqualByComparingTo("540.00");
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not calculate revenue for enrollment ended before period")
+    void shouldNotCalculateRevenueForEnrollmentEndedBeforePeriod() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("180.00")
+                , LocalDate.of(2026, 8, 1));
+        enrollmentActivity.deactivate(LocalDate.of(2026, 9, 30));
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(enrollmentActivity));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getEnrollmentCount()).isEqualTo(0);
+        assertThat(item.getRevenue()).isEqualByComparingTo("0.00");
     }
 
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
