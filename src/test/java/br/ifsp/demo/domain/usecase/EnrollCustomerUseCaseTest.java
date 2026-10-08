@@ -240,8 +240,8 @@ public class EnrollCustomerUseCaseTest {
         EnrollmentActivity previousEnrollmentActivity = enrollment.getEnrollmentActivities().getFirst();
         previousEnrollmentActivity.deactivate();
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(enrollment);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
         when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
         sut.enroll(customer, List.of(activityClass.getId()));
         assertThat(enrollment.getEnrollmentActivities()).hasSize(2);
