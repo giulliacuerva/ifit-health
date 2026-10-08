@@ -251,6 +251,34 @@ public class EnrollCustomerUseCaseTest {
         assertThat(enrollment.isActive()).isTrue();
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should accept enrollment when schedules are exactly adjacent")
+    void shouldAcceptEnrollmentWhenSchedulesAreExactlyAdjacent() {
+        Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
+
+        Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+        ActivityClass existingActivity = createActivityClass(8, existingSchedule);
+        enrollment.addActivity(existingActivity);
+
+        Schedule newSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        ActivityClass newActivity = createActivityClass(10, newSchedule);
+
+        when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
+        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
+
+        Enrollment result = sut.enroll(customer, List.of(newActivity.getId()));
+
+        assertThat(result.getEnrollmentActivities())
+                .hasSize(2);
+
+        verify(enrollmentRepo).save(enrollment);
+    }
+
     private ActivityClass createActivityClass(int activityCapacity) {
         Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
