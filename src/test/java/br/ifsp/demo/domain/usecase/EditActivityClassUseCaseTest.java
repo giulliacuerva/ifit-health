@@ -179,14 +179,7 @@ public class EditActivityClassUseCaseTest {
     @DisplayName("Should reject edit when trainer has schedule conflict")
     void shouldRejectEditWhenTrainerHasScheduleConflict() {
 
-        ActivityClass otherActivity = new ActivityClass(
-                room,
-                sport,
-                trainer,
-                schedule,
-                10,
-                BigDecimal.valueOf(200)
-        );
+        ActivityClass otherActivity = new ActivityClass(room,sport,trainer,schedule,10,BigDecimal.valueOf(200));
 
         when(activityClassRepo.findById(activityClass.getId()))
                 .thenReturn(activityClass);
@@ -194,14 +187,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.findByTrainer(trainer))
                 .thenReturn(List.of(otherActivity));
 
-        assertThatThrownBy(() -> sut.edit(
-                activityClass.getId(),
-                room,
-                sport,
-                trainer,
-                schedule,
-                10,
-                BigDecimal.valueOf(250)
+        assertThatThrownBy(() -> sut.edit(activityClass.getId(),room,sport,trainer,schedule,10,BigDecimal.valueOf(250)
         ))
                 .isInstanceOf(TrainerScheduleConflictException.class);
 
@@ -214,26 +200,30 @@ public class EditActivityClassUseCaseTest {
     @DisplayName("Should reject edit when new schedule conflicts with enrolled student's schedule")
     void shouldRejectEditWhenStudentHasScheduleConflict() {
 
-        Schedule conflictingSchedule = new Schedule(
+        Schedule otherSchedule = new Schedule(
                 Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
-                LocalTime.of(10, 30),
-                LocalTime.of(11, 30)
+                LocalTime.of(11, 0),
+                LocalTime.of(12, 0)
         );
 
-        ActivityClass conflictingActivity = new ActivityClass(
+        ActivityClass otherActivity = new ActivityClass(
                 room,
                 sport,
                 trainer,
-                conflictingSchedule,
+                otherSchedule,
                 10,
                 BigDecimal.valueOf(200)
         );
 
-        EnrollmentActivity enrollmentActivity =
-                new EnrollmentActivity(
-                        conflictingActivity,
-                        BigDecimal.valueOf(200)
-                );
+        Customer customer = new Customer(
+                "Test Customer",
+                "test@email.com"
+        );
+
+        Enrollment enrollment = new Enrollment(customer);
+
+        enrollment.addActivity(activityClass);
+        enrollment.addActivity(otherActivity);
 
         when(activityClassRepo.findById(activityClass.getId()))
                 .thenReturn(activityClass);
@@ -244,15 +234,21 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.findByTrainer(trainer))
                 .thenReturn(List.of());
 
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
-                .thenReturn(List.of(enrollmentActivity));
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass))
+                .thenReturn(List.of(enrollment));
+
+        Schedule newSchedule = new Schedule(
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+                LocalTime.of(10, 30),
+                LocalTime.of(11, 30)
+        );
 
         assertThatThrownBy(() -> sut.edit(
                 activityClass.getId(),
                 room,
                 sport,
                 trainer,
-                conflictingSchedule,
+                newSchedule,
                 10,
                 BigDecimal.valueOf(250)
         ))
@@ -292,15 +288,7 @@ public class EditActivityClassUseCaseTest {
                         enrollmentActivity3
                 ));
 
-        assertThatThrownBy(() -> sut.edit(
-                activityClass.getId(),
-                room,
-                sport,
-                trainer,
-                schedule,
-                2,
-                BigDecimal.valueOf(250)
-        ))
+        assertThatThrownBy(() -> sut.edit(activityClass.getId(), room,sport, trainer,schedule,2,BigDecimal.valueOf(250)))
                 .isInstanceOf(IllegalStateException.class);
 
         verify(activityClassRepo, never()).save(any());
@@ -319,14 +307,7 @@ public class EditActivityClassUseCaseTest {
                 LocalTime.of(15, 0)
         );
 
-        ActivityClass enrolledActivity = new ActivityClass(
-                room,
-                sport,
-                trainer,
-                enrollmentSchedule,
-                10,
-                BigDecimal.valueOf(200)
-        );
+        ActivityClass enrolledActivity = new ActivityClass(room,sport,trainer,enrollmentSchedule,10,BigDecimal.valueOf(200));
 
         EnrollmentActivity enrollmentActivity =
                 new EnrollmentActivity(
@@ -349,15 +330,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.save(activityClass))
                 .thenReturn(activityClass);
 
-        sut.edit(
-                activityClass.getId(),
-                room,
-                sport,
-                trainer,
-                schedule,
-                10,
-                BigDecimal.valueOf(250)
-        );
+        sut.edit(activityClass.getId(), room, sport, trainer, schedule, 10,BigDecimal.valueOf(250));
 
         assertThat(activityClass.getMonthlyFee())
                 .isEqualByComparingTo(BigDecimal.valueOf(250));

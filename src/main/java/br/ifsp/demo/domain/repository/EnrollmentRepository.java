@@ -11,7 +11,7 @@ public interface EnrollmentRepository {
     Enrollment save(Enrollment enrollment);
     List<EnrollmentActivity> findEnrolledActivitiesByActivityClass(ActivityClass activityClass);
     Optional<Enrollment> findByCustomer(Customer customer);
-
+    List<Enrollment> findEnrollmentsByActivityClass(ActivityClass activityClass);
     List<EnrollmentActivity> findActiveEnrollmentActivitiesByStartDateBetween(
             LocalDate startDate,
             LocalDate endDate

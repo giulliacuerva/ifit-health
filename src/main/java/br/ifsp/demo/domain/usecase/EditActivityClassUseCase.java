@@ -1,10 +1,6 @@
 package br.ifsp.demo.domain.usecase;
 
-import br.ifsp.demo.domain.model.ActivityClass;
-import br.ifsp.demo.domain.model.Room;
-import br.ifsp.demo.domain.model.Sport;
-import br.ifsp.demo.domain.model.Trainer;
-import br.ifsp.demo.domain.model.Schedule;
+import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.exception.ActivityScheduleConflictException;
@@ -27,9 +23,7 @@ public class EditActivityClassUseCase {
         this.enrollmentRepo = enrollmentRepo;
     }
 
-    public ActivityClass edit(
-            UUID activityClassId,
-            Room room,
+    public ActivityClass edit(UUID activityClassId,Room room,
             Sport sport,
             Trainer trainer,
             Schedule schedule,
@@ -99,14 +93,16 @@ public class EditActivityClassUseCase {
             Schedule newSchedule
     ) {
         boolean conflict = enrollmentRepo
-                .findEnrolledActivitiesByActivityClass(activityClass)
+                .findEnrollmentsByActivityClass(activityClass)
                 .stream()
-                .anyMatch(enrollmentActivity ->
-                        enrollmentActivity
-                                .getActivityClass()
+                .flatMap(enrollment -> enrollment.getEnrollmentActivities().stream())
+                .filter(EnrollmentActivity::isActive)
+                .filter(activity ->
+                        !activity.getActivityClass().getId().equals(activityClass.getId()))
+                .anyMatch(activity ->
+                        activity.getActivityClass()
                                 .getSchedule()
-                                .conflictsWith(newSchedule)
-                );
+                                .conflictsWith(newSchedule));
 
         if (conflict) {
             throw new ActivityScheduleConflictException(
