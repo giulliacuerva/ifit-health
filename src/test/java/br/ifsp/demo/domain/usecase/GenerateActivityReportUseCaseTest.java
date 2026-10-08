@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -466,6 +467,21 @@ class GenerateActivityReportUseCaseTest {
 
         assertThat(item.getEnrollmentCount()).isEqualTo(1);
         assertThat(item.getRevenue()).isEqualByComparingTo("180.00");
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject report when end date is before start date")
+    void shouldRejectReportWhenEndDateIsBeforeStartDate() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        LocalDate endDate = LocalDate.of(2026, 10, 10);
+
+        assertThatThrownBy(() ->
+                sut.generate(startDate, endDate)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("End date cannot be before start date");
     }
 
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
