@@ -358,8 +358,6 @@ class GenerateActivityReportUseCaseTest {
         LocalDate endDate = LocalDate.of(2026, 10, 31);
         DayOfWeek dayFilter = DayOfWeek.MONDAY;
 
-        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
-
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter))
                 .thenReturn(List.of());
@@ -371,6 +369,31 @@ class GenerateActivityReportUseCaseTest {
 
         verify(enrollmentRepository)
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not include activity when sport matches but day does not")
+    void shouldNotIncludeActivityWhenSportMatchesButDayDoesNot() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        DayOfWeek dayFilter = DayOfWeek.TUESDAY;
+
+        EnrollmentActivity swimmingMondayEnrollment = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
+
+        when(enrollmentRepository
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
+                .thenReturn(List.of(swimmingMondayEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate, swimming, dayFilter);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getItems()).isEmpty();
+
+        verify(enrollmentRepository)
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
     }
 
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
