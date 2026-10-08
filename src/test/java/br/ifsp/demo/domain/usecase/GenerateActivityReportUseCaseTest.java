@@ -190,20 +190,6 @@ class GenerateActivityReportUseCaseTest {
         verify(enrollmentRepository).findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
     }
 
-
-    private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
-        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
-        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
-        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
-        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
-    }
-
-    private ActivityClass createActivityClass(Sport sport, int activityCapacity, Schedule schedule, BigDecimal monthlyFee) {
-        Room room = new Room(UUID.randomUUID(), "Room A", sport.getRoomType(), 10);
-        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
-        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, monthlyFee);
-    }
-
     @Test
     @Tag("TDD")
     @Tag("UnitTest")
@@ -339,6 +325,41 @@ class GenerateActivityReportUseCaseTest {
 
         assertThat(item.getAverageOccupancy())
                 .isEqualByComparingTo("15.00");
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not include activities from different sport")
+    void shouldNotIncludeActivitiesFromDifferentSport() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
+
+        when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
+                .thenReturn(List.of());
+
+        ActivityReport result = sut.generate(startDate, endDate, swimming);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getItems()).isEmpty();
+
+        verify(enrollmentRepository)
+                .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming);
+    }
+
+    private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
+        Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
+        Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
+        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, new BigDecimal("180.00"));
+    }
+
+    private ActivityClass createActivityClass(Sport sport, int activityCapacity, Schedule schedule, BigDecimal monthlyFee) {
+        Room room = new Room(UUID.randomUUID(), "Room A", sport.getRoomType(), 10);
+        Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");
+        return new ActivityClass(room, sport, trainer, schedule, activityCapacity, monthlyFee);
     }
 
 }
