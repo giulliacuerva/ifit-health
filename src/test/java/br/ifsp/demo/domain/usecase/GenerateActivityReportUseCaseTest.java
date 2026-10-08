@@ -442,6 +442,32 @@ class GenerateActivityReportUseCaseTest {
         assertThat(item.getRevenue()).isEqualByComparingTo("0.00");
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should generate report when start date and end date are the same")
+    void shouldGenerateReportWhenStartDateAndEndDateAreTheSame() {
+        LocalDate date = LocalDate.of(2026, 10, 15);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass
+                , new BigDecimal("180.00"), date);
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(date, date))
+                .thenReturn(List.of(enrollmentActivity));
+
+        ActivityReport result = sut.generate(date, date);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStartDate()).isEqualTo(date);
+        assertThat(result.getEndDate()).isEqualTo(date);
+
+        ActivityReportItem item = result.getItems().getFirst();
+
+        assertThat(item.getEnrollmentCount()).isEqualTo(1);
+        assertThat(item.getRevenue()).isEqualByComparingTo("180.00");
+    }
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
