@@ -44,7 +44,7 @@ public class EditActivityClassUseCaseTest {
     void setup() {
         trainer = new Trainer(UUID.randomUUID(), "Lucas Pereira");
         room = new Room(UUID.randomUUID(), "Sala A", RoomType.GYM, 10);
-        sport = new Sport(UUID.randomUUID(), "Voley", RoomType.GYM);
+        sport = new Sport(UUID.randomUUID(), "Baskete", RoomType.GYM);
 
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
         schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
@@ -123,7 +123,7 @@ public class EditActivityClassUseCaseTest {
     void shouldRejectEditWhenStudentHasScheduleConflict() {
         Schedule otherSchedule = new Schedule(Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), LocalTime.of(11, 0), LocalTime.of(12, 0));
         ActivityClass otherActivity = new ActivityClass(room, sport, trainer, otherSchedule, 10, BigDecimal.valueOf(200));
-        Customer customer = new Customer("Test Customer", "test@email.com");
+        Customer customer = new Customer("Test Customer", "teste@email.com");
 
         Enrollment enrollment = new Enrollment(customer);
         enrollment.addActivity(activityClass);
@@ -252,7 +252,7 @@ public class EditActivityClassUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should reject edit when room type does not match sport")
     void shouldRejectEditWhenRoomTypeDoesNotMatchSport() {
-        Room incompatibleRoom = new Room(UUID.randomUUID(), "Sala B", RoomType.POOL, 10);
+        Room incompatibleRoom = new Room(UUID.randomUUID(), "Sala C", RoomType.POOL, 10);
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
 
@@ -299,5 +299,153 @@ public class EditActivityClassUseCaseTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(activityClassRepo, never()).save(any());
+    }
+
+    // ==================== FUNCTIONAL TESTS ====================
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should successfully edit an activity with valid new data")
+    void shouldSuccessfullyEditActivityWithValidNewData() {
+        Room newRoom = new Room(UUID.randomUUID(), "Sala B", RoomType.GYM, 15);
+        Trainer newTrainer = new Trainer(UUID.randomUUID(), "Larissa");
+        Schedule newSchedule = new Schedule(Set.of(DayOfWeek.TUESDAY), LocalTime.of(14, 0), LocalTime.of(15, 0));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(newRoom)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(newTrainer)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
+
+        ActivityClass result = sut.edit(activityClass.getId(), newRoom, sport, newTrainer, newSchedule, 12, BigDecimal.valueOf(250));
+
+        assertThat(result.getRoom()).isEqualTo(newRoom);
+        assertThat(result.getTrainer()).isEqualTo(newTrainer);
+        assertThat(result.getSchedule()).isEqualTo(newSchedule);
+        assertThat(result.getCapacity()).isEqualTo(12);
+        assertThat(result.getMonthlyFee()).isEqualByComparingTo(BigDecimal.valueOf(250));
+        verify(activityClassRepo).save(activityClass);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should edit activity when keeping the same room, schedule and trainer")
+    void shouldEditActivityWithoutSelfConflict() {
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of(activityClass));
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(activityClass));
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
+
+        ActivityClass result = sut.edit(activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250));
+
+        assertThat(result.getMonthlyFee()).isEqualByComparingTo(BigDecimal.valueOf(250));
+        verify(activityClassRepo).save(activityClass);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when room has a conflicting activity")
+    void shouldRejectEditWhenRoomHasConflictingActivity() {
+        ActivityClass otherActivity = new ActivityClass(room, sport, trainer, schedule, 10, BigDecimal.valueOf(200));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of(activityClass, otherActivity));
+
+        assertThatThrownBy(() -> sut.edit(activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250)))
+                .isInstanceOf(RoomScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when trainer has a conflicting activity")
+    void shouldRejectEditWhenTrainerHasConflictingActivity() {
+        ActivityClass otherActivity = new ActivityClass(room, sport, trainer, schedule, 10, BigDecimal.valueOf(200));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(activityClass, otherActivity));
+
+        assertThatThrownBy(() -> sut.edit(activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250)))
+                .isInstanceOf(TrainerScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when enrolled student has a schedule conflict")
+    void shouldRejectEditWhenEnrolledStudentHasScheduleConflict() {
+        Schedule conflictingSchedule = new Schedule(Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), LocalTime.of(11, 0), LocalTime.of(12, 0));
+        ActivityClass otherActivity = new ActivityClass(room, sport, trainer, conflictingSchedule, 10, BigDecimal.valueOf(200));
+        Customer customer = new Customer("Functional Customer", "functional@email.com");
+
+        Enrollment enrollment = new Enrollment(customer);
+        enrollment.addActivity(activityClass);
+        enrollment.addActivity(otherActivity);
+
+        Schedule newSchedule = new Schedule(Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), LocalTime.of(10, 30), LocalTime.of(11, 30));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of(enrollment));
+
+        assertThatThrownBy(() -> sut.edit(activityClass.getId(), room, sport, trainer, newSchedule, 10, BigDecimal.valueOf(250)))
+                .isInstanceOf(ActivityScheduleConflictException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject edit when capacity is lower than enrolled students")
+    void shouldRejectEditWhenCapacityIsLowerThanEnrolledStudentsFunctional() {
+        EnrollmentActivity enrollmentActivity1 = new EnrollmentActivity(activityClass, BigDecimal.valueOf(200));
+        EnrollmentActivity enrollmentActivity2 = new EnrollmentActivity(activityClass, BigDecimal.valueOf(200));
+        EnrollmentActivity enrollmentActivity3 = new EnrollmentActivity(activityClass, BigDecimal.valueOf(200));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
+                .thenReturn(List.of(enrollmentActivity1, enrollmentActivity2, enrollmentActivity3));
+
+        assertThatThrownBy(() -> sut.edit(activityClass.getId(), room, sport, trainer, schedule, 2, BigDecimal.valueOf(250)))
+                .isInstanceOf(IllegalStateException.class);
+
+        verify(activityClassRepo, never()).save(any());
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should preserve the previous monthly fee for existing enrollment")
+    void shouldPreservePreviousMonthlyFeeForExistingEnrollmentFunctional() {
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, BigDecimal.valueOf(200));
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of(enrollmentActivity));
+        when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
+
+        sut.edit(activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250));
+
+        assertThat(activityClass.getMonthlyFee()).isEqualByComparingTo(BigDecimal.valueOf(250));
+        assertThat(enrollmentActivity.getMonthlyFee()).isEqualByComparingTo(BigDecimal.valueOf(200));
+        verify(activityClassRepo).save(activityClass);
     }
 }
