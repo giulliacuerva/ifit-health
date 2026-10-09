@@ -26,6 +26,17 @@ public class ActivityClass {
         this.active = true;
     }
 
+    public ActivityClass(UUID id, Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee, boolean active) {
+        this.id = id;
+        this.room = room;
+        this.sport = sport;
+        this.trainer = trainer;
+        this.schedule = schedule;
+        this.capacity = capacity;
+        this.monthlyFee = monthlyFee;
+        this.active = active;
+    }
+
     public UUID getId() {
         return id;
     }

@@ -20,6 +20,13 @@ public class Enrollment {
         this.active = true;
     }
 
+    public Enrollment(UUID id, Customer customer, List<EnrollmentActivity> enrollmentActivities, boolean active) {
+        this.id = id;
+        this.customer = customer;
+        this.enrollmentActivities = new ArrayList<>(enrollmentActivities);
+        this.active = active;
+    }
+
     public void addActivity(ActivityClass activityClass) {
         validateActivity(activityClass);
         addEnrollmentActivity(activityClass);
