@@ -161,7 +161,7 @@ public class DatabaseBuilder {
                     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE (sport_id, name),
+                    UNIQUE (sport_id),
                     FOREIGN KEY (sport_id) REFERENCES sports(id),
                     FOREIGN KEY (room_id) REFERENCES rooms(id),
                     FOREIGN KEY (coach_id) REFERENCES trainer(id)
