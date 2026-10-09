@@ -153,7 +153,6 @@ public class DatabaseBuilder {
                     sport_id TEXT NOT NULL,
                     room_id TEXT NOT NULL,
                     coach_id TEXT NOT NULL,
-                    name TEXT NOT NULL,
                     weekday TEXT NOT NULL,
                     start_time TEXT NOT NULL,
                     end_time TEXT NOT NULL,
@@ -162,7 +161,6 @@ public class DatabaseBuilder {
                     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE (sport_id, name),
                     FOREIGN KEY (sport_id) REFERENCES sports(id),
                     FOREIGN KEY (room_id) REFERENCES rooms(id),
                     FOREIGN KEY (coach_id) REFERENCES trainer(id)
