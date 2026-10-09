@@ -5,5 +5,6 @@ public enum RoomType {
     COURT,
     TATAMI,
     TABLE_TENNIS,
-    GYM
+    GYM,
+    TRACK
 }

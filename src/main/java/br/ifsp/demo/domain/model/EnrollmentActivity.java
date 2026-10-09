@@ -32,6 +32,15 @@ public class EnrollmentActivity {
         this.startDate = Objects.requireNonNull(startDate);
     }
 
+    public EnrollmentActivity(UUID id, ActivityClass activityClass, BigDecimal monthlyFee, boolean active, LocalDate startDate, LocalDate endDate) {
+        this.id = id;
+        this.activityClass = activityClass;
+        this.monthlyFee = monthlyFee;
+        this.active = active;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
     public void deactivate() {
         deactivate(LocalDate.now());
     }

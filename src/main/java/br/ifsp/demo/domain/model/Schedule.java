@@ -40,6 +40,14 @@ public class Schedule {
         return weekdays;
     }
 
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
