@@ -153,7 +153,6 @@ public class DatabaseBuilder {
                     sport_id TEXT NOT NULL,
                     room_id TEXT NOT NULL,
                     coach_id TEXT NOT NULL,
-                    name TEXT NOT NULL,
                     weekday TEXT NOT NULL,
                     start_time TEXT NOT NULL,
                     end_time TEXT NOT NULL,
