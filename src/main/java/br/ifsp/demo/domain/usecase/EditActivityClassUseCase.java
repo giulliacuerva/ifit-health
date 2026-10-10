@@ -12,7 +12,9 @@ import br.ifsp.demo.exception.TrainerScheduleConflictException;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
 
+@Service
 public class EditActivityClassUseCase {
 
     private final ActivityClassRepository activityClassRepo;

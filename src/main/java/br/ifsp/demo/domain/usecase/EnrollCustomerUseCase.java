@@ -10,7 +10,9 @@ import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
 
+@Service
 public class EnrollCustomerUseCase {
     private final ActivityClassRepository activityClassRepository;
     private final EnrollmentRepository enrollmentRepository;
