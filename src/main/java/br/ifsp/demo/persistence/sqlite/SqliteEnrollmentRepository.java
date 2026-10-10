@@ -3,6 +3,7 @@ package br.ifsp.demo.persistence.sqlite;
 import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.Gender;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import org.springframework.stereotype.Repository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,12 +18,27 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Repository
 public class SqliteEnrollmentRepository implements EnrollmentRepository {
 
     private final SqliteActivityClassRepository activityClassRepository;
 
-    public SqliteEnrollmentRepository() {
-        this.activityClassRepository = new SqliteActivityClassRepository();
+    public SqliteEnrollmentRepository(SqliteActivityClassRepository activityClassRepository) {
+        this.activityClassRepository = activityClassRepository;
+    }
+
+    @Override
+    public Optional<Customer> findCustomerById(UUID customerId) {
+        final String sql = "SELECT id AS customer_id, user_id, cpf, name AS customer_name, birthdate, gender, tel, email, address_cep, address_number, address_street, address_city, address_state, created_at, updated_at FROM customers WHERE id = ?";
+        try (Connection connection = ConnectionFactory.createConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, customerId.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? Optional.of(mapCustomer(rs)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding customer by id", e);
+        }
     }
 
     @Override
