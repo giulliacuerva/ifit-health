@@ -52,7 +52,11 @@ public class EnrollmentActivity {
             );
         }
 
-        this.endDate = Objects.requireNonNull(endDate);
+        Objects.requireNonNull(endDate, "End date cannot be null");
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("End date cannot be before enrollment start date");
+        }
+        this.endDate = endDate;
         this.active = false;
     }
 
