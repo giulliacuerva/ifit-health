@@ -6,6 +6,7 @@ import br.ifsp.demo.exception.EnrollmentActivityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 
 public class Enrollment {
     private final UUID id;
@@ -81,12 +82,16 @@ public class Enrollment {
     }
 
     public void cancelActivity(UUID activityId) {
+        cancelActivity(activityId, LocalDate.now());
+    }
+
+    public void cancelActivity(UUID activityId, LocalDate endDate) {
         EnrollmentActivity enrollmentActivity = enrollmentActivities.stream()
                 .filter(activity -> activity.getId()
                         .equals(activityId))
                 .findFirst().orElseThrow(() -> new EnrollmentActivityNotFoundException("Enrollment activity not found"));
 
-        enrollmentActivity.deactivate();
+        enrollmentActivity.deactivate(endDate);
     }
 
     public boolean isActive() { return active; }

@@ -7,7 +7,10 @@ import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.exception.EnrollmentNotFoundException;
 
 import java.util.UUID;
+import java.time.LocalDate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class CancelEnrollmentActivityUseCase {
 
     private final EnrollmentRepository enrollmentRepo;
@@ -17,8 +20,12 @@ public class CancelEnrollmentActivityUseCase {
     }
 
     public Enrollment cancelActivity(Customer customer, UUID activityId) {
+        return cancelActivity(customer, activityId, LocalDate.now());
+    }
+
+    public Enrollment cancelActivity(Customer customer, UUID activityId, LocalDate endDate) {
         Enrollment enrollment = enrollmentRepo.findByCustomer(customer).orElseThrow(() -> new EnrollmentNotFoundException("Enrollment not found"));
-        enrollment.cancelActivity(activityId);
+        enrollment.cancelActivity(activityId, endDate);
         boolean isAllDeactivated = enrollment.getEnrollmentActivities()
                 .stream()
                 .noneMatch(EnrollmentActivity::isActive);

@@ -10,8 +10,10 @@ import br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import org.springframework.stereotype.Service;
 
 
+@Service
 public class CreateActivityClassUseCase {
     private final ActivityClassRepository activityClassRepo;
 

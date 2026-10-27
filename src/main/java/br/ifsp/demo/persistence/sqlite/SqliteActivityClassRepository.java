@@ -6,6 +6,7 @@ import br.ifsp.demo.domain.model.Room;
 import br.ifsp.demo.domain.model.Schedule;
 import br.ifsp.demo.domain.model.Sport;
 import br.ifsp.demo.domain.model.Trainer;
+import org.springframework.stereotype.Repository;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Repository
 public class SqliteActivityClassRepository implements ActivityClassRepository {
 
     private static final String SELECT_ACTIVITY = """
@@ -308,6 +310,65 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
         } catch (SQLException e) {
             throw new RuntimeException("Error finding all activity classes", e);
         }
+    }
+
+    @Override
+    public Room findRoomById(UUID id) {
+        final String sql = "SELECT id, name, room_type, capacity FROM rooms WHERE id = ?";
+        try (Connection connection = ConnectionFactory.createConnection();
+             var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, id.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? new Room(UUID.fromString(rs.getString("id")),
+                        rs.getString("name"), RoomType.valueOf(rs.getString("room_type")),
+                        rs.getInt("capacity")) : null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding room by id", e);
+        }
+    }
+
+    @Override
+    public Sport findSportById(UUID id) {
+        final String sql = "SELECT id, name, description, room_type, active, created_at, updated_at FROM sports WHERE id = ?";
+        try (Connection connection = ConnectionFactory.createConnection();
+             var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, id.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? new Sport(UUID.fromString(rs.getString("id")),
+                        rs.getString("name"), rs.getString("description"),
+                        RoomType.valueOf(rs.getString("room_type")), rs.getInt("active") == 1,
+                        parseDateTime(rs.getString("created_at")),
+                        parseDateTime(rs.getString("updated_at"))) : null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding sport by id", e);
+        }
+    }
+
+    @Override
+    public Trainer findTrainerById(UUID id) {
+        final String sql = "SELECT id, name, email, birthdate, address_cep, address_number, address_street, address_city, address_state, active FROM trainer WHERE id = ?";
+        try (Connection connection = ConnectionFactory.createConnection();
+             var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, id.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) return null;
+                Address address = mapAddress(rs.getString("address_cep"),
+                        rs.getString("address_number"), rs.getString("address_street"),
+                        rs.getString("address_city"), rs.getString("address_state"));
+                return new Trainer(UUID.fromString(rs.getString("id")), rs.getString("name"),
+                        rs.getString("email"), LocalDate.parse(rs.getString("birthdate")),
+                        address, rs.getInt("active") == 1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding trainer by id", e);
+        }
+    }
+
+    private Address mapAddress(String cep, String number, String street, String city, String state) {
+        return cep == null && number == null && street == null && city == null && state == null
+                ? null : new Address(cep, number, street, city, state);
     }
 
     private ActivityClass mapActivityClass(ResultSet rs) throws SQLException {
