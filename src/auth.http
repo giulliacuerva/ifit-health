@@ -1,0 +1,22 @@
+
+
+### Register
+POST http://localhost:8080/api/v1/register
+Content-Type: application/json
+
+{
+  "email": "ana.souza@example.com",
+  "password": "ana@1234567",
+  "name":"ana",
+  "lastname": "souza"
+}
+
+### Authenticate
+POST http://localhost:8080/api/v1/authenticate
+Content-Type: application/json
+
+{
+  "username": "ana.souza@example.com",
+  "password": "ana@1234567"
+}
+

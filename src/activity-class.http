@@ -1,0 +1,76 @@
+@auth_token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbmEuc291emFAZXhhbXBsZS5jb20iLCJpYXQiOjE3OTMyMzQ1NTEsImV4cCI6MTc5MzI0MzE5MX0.8wOwQPb2QgOw8EzmvmrOHWNptLISlOJTn-VZzi0rzi0
+
+@base_url = http://localhost:8080/api/v1
+
+### Create activity class (run Authenticate in auth.http first)
+POST {{base_url}}/activity-classes
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "sportId": "15e8ef23-350a-47e2-9e60-052cf6fe48da",
+  "roomId": "7ec5a107-ea02-4773-a179-8e2e6ecd7bbe",
+  "trainerId": "69eadcea-33ae-4a0a-81c9-6da3cb970efc",
+  "weekdays": [
+    "MONDAY"
+  ],
+  "startTime": "11:30",
+  "endTime": "12:30",
+  "capacity": 20,
+  "monthlyFee": 180.00
+}
+
+
+### Create activity class in wrong room
+POST {{base_url}}/activity-classes
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "sportId": "971528da-c963-4299-8b5c-15f47348d10a",
+  "roomId": "7ec5a107-ea02-4773-a179-8e2e6ecd7bbe",
+  "trainerId": "69eadcea-33ae-4a0a-81c9-6da3cb970efc",
+  "weekdays": [
+    "MONDAY"
+  ],
+  "startTime": "14:30",
+  "endTime": "15:30",
+  "capacity": 20,
+  "monthlyFee": 180.00
+}
+
+### Create activity class (swimming) in the right room
+POST {{base_url}}/activity-classes
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "sportId": "971528da-c963-4299-8b5c-15f47348d10a",
+  "roomId": "d43d88ee-1b0d-43c8-be40-6ab42b8561a6",
+  "trainerId": "69eadcea-33ae-4a0a-81c9-6da3cb970efc",
+  "weekdays": [
+    "THURSDAY", "SATURDAY"
+  ],
+  "startTime": "14:30",
+  "endTime": "15:30",
+  "capacity": 1,
+  "monthlyFee": 180.00
+}
+
+### Create activity class setup with capacity 1 to test enrollments
+POST {{base_url}}/activity-classes
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "sportId": "971528da-c963-4299-8b5c-15f47348d10a",
+  "roomId": "d43d88ee-1b0d-43c8-be40-6ab42b8561a6",
+  "trainerId": "69eadcea-33ae-4a0a-81c9-6da3cb970efc",
+  "weekdays": [
+    "WEDNESDAY"
+  ],
+  "startTime": "19:30",
+  "endTime": "20:30",
+  "capacity": 1,
+  "monthlyFee": 1080.00
+}

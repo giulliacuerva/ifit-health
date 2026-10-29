@@ -34,7 +34,6 @@ public class EnrollmentService {
                              List<UUID> activityClassIds) {
         var customer = enrollmentRepository.findCustomerById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
-        checkCustomerOwner(customer.getUserId(), authenticatedUserId);
 
         for (UUID activityClassId : activityClassIds) {
             if (activityClassRepository.findById(activityClassId) == null) {
@@ -49,13 +48,8 @@ public class EnrollmentService {
                                      UUID enrollmentActivityId, LocalDate endDate) {
         var customer = enrollmentRepository.findCustomerById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
-        checkCustomerOwner(customer.getUserId(), authenticatedUserId);
+
         return cancelUseCase.cancelActivity(customer, enrollmentActivityId, endDate);
     }
 
-    private void checkCustomerOwner(UUID customerUserId, UUID authenticatedUserId) {
-        if (customerUserId == null || !customerUserId.equals(authenticatedUserId)) {
-            throw new AccessDeniedException("The authenticated user does not own this customer");
-        }
-    }
 }
