@@ -466,8 +466,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
 
         ActivityClass result = sut.edit(
-                activityClass.getId(), room, sport, trainer,
-                schedule, 10, BigDecimal.valueOf(250)
+                activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250)
         );
 
         assertThat(result).isSameAs(activityClass);
@@ -492,8 +491,7 @@ public class EditActivityClassUseCaseTest {
         when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
 
         ActivityClass result = sut.edit(
-                activityClass.getId(), room, sport, trainer,
-                schedule, 10, BigDecimal.valueOf(250)
+                activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250)
         );
 
         assertThat(result).isSameAs(activityClass);
@@ -522,5 +520,30 @@ public class EditActivityClassUseCaseTest {
                 activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250));
 
         assertThat(result).isSameAs(activityClass);
+    }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should allow capacity equal to the number of enrolled students")
+    void shouldAllowCapacityEqualToTheNumberOfEnrolledStudents() {
+        List<EnrollmentActivity> enrolledActivities = List.of(
+                new EnrollmentActivity(activityClass, BigDecimal.valueOf(200)),
+                new EnrollmentActivity(activityClass, BigDecimal.valueOf(200)),
+                new EnrollmentActivity(activityClass, BigDecimal.valueOf(200))
+        );
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(enrolledActivities);
+        when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
+
+        ActivityClass result = sut.edit(
+                activityClass.getId(), room, sport, trainer,schedule, enrolledActivities.size(), BigDecimal.valueOf(250)
+        );
+
+        assertThat(result.getCapacity()).isEqualTo(enrolledActivities.size());
     }
 }
