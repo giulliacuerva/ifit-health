@@ -448,4 +448,30 @@ public class EditActivityClassUseCaseTest {
         assertThat(enrollmentActivity.getMonthlyFee()).isEqualByComparingTo(BigDecimal.valueOf(200));
         verify(activityClassRepo).save(activityClass);
     }
+
+    @Test
+    @Tag("Mutation") //TESTE 1 - ***Verificar se mata lin 92
+    @Tag("UnitTest")
+    @DisplayName("Should allow edit when same room and trainer activities do not overlap")
+    void shouldAllowEditWhenSameRoomAndTrainerActivitiesDoNotOverlap() {
+        ActivityClass otherActivity = new ActivityClass(
+                room, sport, trainer, otherSchedule, 10, BigDecimal.valueOf(200)
+        );
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of(otherActivity));
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of(otherActivity));
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
+        when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
+
+        ActivityClass result = sut.edit(
+                activityClass.getId(), room, sport, trainer,
+                schedule, 10, BigDecimal.valueOf(250)
+        );
+
+        assertThat(result).isSameAs(activityClass);
+    }
+
+
 }
