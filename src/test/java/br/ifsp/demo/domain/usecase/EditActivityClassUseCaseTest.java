@@ -498,4 +498,29 @@ public class EditActivityClassUseCaseTest {
 
         assertThat(result).isSameAs(activityClass);
     }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should allow edit when another enrolled activity does not overlap")
+    void shouldAllowEditWhenAnotherEnrolledActivityDoesNotOverlap() {
+        Customer customer = new Customer("Test Customer", "teste@email.com");
+        Enrollment enrollment = new Enrollment(customer);
+        enrollment.addActivity(activityClass);
+        enrollment.addActivity(enrolledActivity);
+
+        when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
+        when(activityClassRepo.findByRoom(room)).thenReturn(List.of());
+        when(activityClassRepo.findByTrainer(trainer)).thenReturn(List.of());
+        when(enrollmentRepo.findEnrollmentsByActivityClass(activityClass))
+                .thenReturn(List.of(enrollment));
+        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
+                .thenReturn(enrollment.getEnrollmentActivities());
+        when(activityClassRepo.save(activityClass)).thenReturn(activityClass);
+
+        ActivityClass result = sut.edit(
+                activityClass.getId(), room, sport, trainer, schedule, 10, BigDecimal.valueOf(250));
+
+        assertThat(result).isSameAs(activityClass);
+    }
 }
