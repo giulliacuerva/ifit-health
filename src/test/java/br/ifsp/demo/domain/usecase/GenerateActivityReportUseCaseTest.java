@@ -62,8 +62,8 @@ class GenerateActivityReportUseCaseTest {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
         LocalDate endDate = LocalDate.of(2026, 10, 31);
 
-        EnrollmentActivity enrollmentActivity1 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"));
-        EnrollmentActivity enrollmentActivity2 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"));
+        EnrollmentActivity enrollmentActivity1 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 1));
+        EnrollmentActivity enrollmentActivity2 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 1));
 
         when(activityClassRepository.findAll())
                 .thenReturn(List.of(activityClass));
