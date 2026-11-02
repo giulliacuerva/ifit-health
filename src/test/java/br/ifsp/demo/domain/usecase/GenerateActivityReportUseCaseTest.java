@@ -510,6 +510,26 @@ class GenerateActivityReportUseCaseTest {
     }
 
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should ignore enrollment when its activity is absent from the report")
+    void shouldIgnoreEnrollmentWhenActivityIsNotInReport() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+
+        when(activityClassRepository.findAll()).thenReturn(List.of());
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(enrollmentActivity));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems()).isEmpty();
+    }
+
+
 
 
 
