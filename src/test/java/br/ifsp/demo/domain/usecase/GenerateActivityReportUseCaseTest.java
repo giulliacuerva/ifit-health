@@ -487,6 +487,34 @@ class GenerateActivityReportUseCaseTest {
                 .hasMessage("End date cannot be before start date");
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should cover enrollment start date boundaries for average occupancy")
+    void shouldCoverEnrollmentStartDateBoundariesForAverageOccupancy() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+        EnrollmentActivity startsOnPeriodStart = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        EnrollmentActivity startsWithinPeriod = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 15));
+        EnrollmentActivity startsAfterPeriod = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 11, 1));
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(startsOnPeriodStart, startsWithinPeriod, startsAfterPeriod));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+        ActivityReportItem item = result.getItems().getFirst();
+        assertThat(item.getEnrollmentCount()).isEqualTo(2);
+        assertThat(item.getRevenue()).isEqualByComparingTo("360.00");
+        assertThat(item.getAverageOccupancy()).isEqualByComparingTo("15.00");
+    }
+
+
+
+
+
+
+
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
