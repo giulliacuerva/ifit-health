@@ -27,6 +27,7 @@ public class CreateActivityClassUseCase {
         Objects.requireNonNull(trainer, "Trainer cannot be null");
         Objects.requireNonNull(schedule, "Schedule cannot be null");
         Objects.requireNonNull(monthlyFee, "Monthly fee cannot be null");
+        if (capacity < 1) throw(new IllegalArgumentException("Capacity must be greater than 0"));
 
         validateRoomConflict(room, schedule);
         validateTrainerConflict(trainer, schedule);

@@ -338,4 +338,14 @@ public class CreateActivityClassUseCaseTest {
                 sut.createNewActivityClass(room, sport, trainer, schedule, 10, null))
                 .isInstanceOf(NullPointerException.class);
     }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when monthly fee is null")
+    void shouldNotCreateActivityClassWhenCapacityIsNegative() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, trainer, schedule, -1, new BigDecimal("250.00")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }
