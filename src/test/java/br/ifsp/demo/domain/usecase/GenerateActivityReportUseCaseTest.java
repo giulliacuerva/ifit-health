@@ -24,8 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GenerateActivityReportUseCaseTest {
@@ -518,6 +517,30 @@ class GenerateActivityReportUseCaseTest {
         ActivityReport result = sut.generate(startDate, endDate);
 
         assertThat(result.getItems()).isEmpty();
+    }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should exclude an enrollment ended when another starts")
+    void shouldExcludeEnrollmentEndedWhenAnotherStarts() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+        LocalDate changeDate = LocalDate.of(2026, 10, 15);
+
+        EnrollmentActivity endingEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        endingEnrollment.deactivate(changeDate);
+
+        EnrollmentActivity startingEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), changeDate);
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(endingEnrollment, startingEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems().getFirst().getAverageOccupancy())
+                .isEqualByComparingTo("10.00");
     }
 
 
