@@ -573,6 +573,22 @@ class GenerateActivityReportUseCaseTest {
     }
 
 
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should validate dates before querying by sport")
+    void shouldValidateDatesBeforeQueryingBySport() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        LocalDate endDate = LocalDate.of(2026, 10, 10);
+
+        assertThatThrownBy(() -> sut.generate(startDate, endDate, swimming))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("End date cannot be before start date");
+
+        verifyNoInteractions(enrollmentRepository);
+    }
+
+
 
 
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
