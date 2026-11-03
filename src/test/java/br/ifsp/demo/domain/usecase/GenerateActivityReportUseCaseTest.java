@@ -603,6 +603,21 @@ class GenerateActivityReportUseCaseTest {
         verifyNoInteractions(enrollmentRepository);
     }
 
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should validate dates before querying by sport and day of week")
+    void shouldValidateDatesBeforeQueryingBySportAndDayOfWeek() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        LocalDate endDate = LocalDate.of(2026, 10, 10);
+
+        assertThatThrownBy(() ->
+                sut.generate(startDate, endDate, swimming, DayOfWeek.MONDAY))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("End date cannot be before start date");
+
+        verifyNoInteractions(enrollmentRepository);
+    }
 
 
 
