@@ -40,18 +40,14 @@ class GenerateActivityReportUseCaseTest {
     private ActivityClass activityClass;
     private Sport swimming;
     private ActivityClass swimmingActivity;
-    private ActivityClass judoActivity;
 
     @BeforeEach
     void setUp() {
         Schedule schedule = new Schedule(Set.of(DayOfWeek.MONDAY), LocalTime.of(10, 0), LocalTime.of(11, 0));
         activityClass = createActivityClass(10, schedule);
         swimming = new Sport(UUID.randomUUID(), "Swimming", RoomType.POOL);
-        Sport judo = new Sport(UUID.randomUUID(), "Judo", RoomType.TATAMI);
         Schedule swimmingSchedule = new Schedule(Set.of(DayOfWeek.MONDAY), LocalTime.of(10, 0), LocalTime.of(11, 0));
-        Schedule judoSchedule = new Schedule(Set.of(DayOfWeek.TUESDAY), LocalTime.of(14, 0), LocalTime.of(15, 0));
         swimmingActivity = createActivityClass(swimming, 10, swimmingSchedule, new BigDecimal("180.00"));
-        judoActivity = createActivityClass(judo, 8, judoSchedule, new BigDecimal("200.00"));
     }
 
     @Test
@@ -100,8 +96,6 @@ class GenerateActivityReportUseCaseTest {
 
         EnrollmentActivity swimmingEnrollment1 = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
         EnrollmentActivity swimmingEnrollment2 = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
-        EnrollmentActivity judoEnrollment1 = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
-        EnrollmentActivity judoEnrollment2 = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
@@ -138,7 +132,6 @@ class GenerateActivityReportUseCaseTest {
         EnrollmentActivity swimmingEnrollment2 =
                 new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
 
-        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter))
@@ -172,7 +165,6 @@ class GenerateActivityReportUseCaseTest {
         DayOfWeek dayFilter = DayOfWeek.MONDAY;
 
         EnrollmentActivity swimmingMondayEnrollment = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
-        EnrollmentActivity judoTuesdayEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
@@ -339,7 +331,6 @@ class GenerateActivityReportUseCaseTest {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
         LocalDate endDate = LocalDate.of(2026, 10, 31);
 
-        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
                 .thenReturn(List.of());
