@@ -24,8 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GenerateActivityReportUseCaseTest {
@@ -40,18 +39,14 @@ class GenerateActivityReportUseCaseTest {
     private ActivityClass activityClass;
     private Sport swimming;
     private ActivityClass swimmingActivity;
-    private ActivityClass judoActivity;
 
     @BeforeEach
     void setUp() {
         Schedule schedule = new Schedule(Set.of(DayOfWeek.MONDAY), LocalTime.of(10, 0), LocalTime.of(11, 0));
         activityClass = createActivityClass(10, schedule);
         swimming = new Sport(UUID.randomUUID(), "Swimming", RoomType.POOL);
-        Sport judo = new Sport(UUID.randomUUID(), "Judo", RoomType.TATAMI);
         Schedule swimmingSchedule = new Schedule(Set.of(DayOfWeek.MONDAY), LocalTime.of(10, 0), LocalTime.of(11, 0));
-        Schedule judoSchedule = new Schedule(Set.of(DayOfWeek.TUESDAY), LocalTime.of(14, 0), LocalTime.of(15, 0));
         swimmingActivity = createActivityClass(swimming, 10, swimmingSchedule, new BigDecimal("180.00"));
-        judoActivity = createActivityClass(judo, 8, judoSchedule, new BigDecimal("200.00"));
     }
 
     @Test
@@ -62,9 +57,12 @@ class GenerateActivityReportUseCaseTest {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
         LocalDate endDate = LocalDate.of(2026, 10, 31);
 
-        EnrollmentActivity enrollmentActivity1 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"));
-        EnrollmentActivity enrollmentActivity2 = new EnrollmentActivity(activityClass, new BigDecimal("180.00"));
+        LocalDate enrollmentStart = LocalDate.of(2026, 10, 1);
 
+        EnrollmentActivity enrollmentActivity1 =
+                new EnrollmentActivity(activityClass, new BigDecimal("180.00"), enrollmentStart);
+        EnrollmentActivity enrollmentActivity2 =
+                new EnrollmentActivity(activityClass, new BigDecimal("180.00"), enrollmentStart);
         when(activityClassRepository.findAll())
                 .thenReturn(List.of(activityClass));
 
@@ -97,8 +95,6 @@ class GenerateActivityReportUseCaseTest {
 
         EnrollmentActivity swimmingEnrollment1 = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
         EnrollmentActivity swimmingEnrollment2 = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
-        EnrollmentActivity judoEnrollment1 = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
-        EnrollmentActivity judoEnrollment2 = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
@@ -135,7 +131,6 @@ class GenerateActivityReportUseCaseTest {
         EnrollmentActivity swimmingEnrollment2 =
                 new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
 
-        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndDayOfWeek(startDate, endDate, dayFilter))
@@ -169,7 +164,6 @@ class GenerateActivityReportUseCaseTest {
         DayOfWeek dayFilter = DayOfWeek.MONDAY;
 
         EnrollmentActivity swimmingMondayEnrollment = new EnrollmentActivity(swimmingActivity, new BigDecimal("180.00"));
-        EnrollmentActivity judoTuesdayEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository
                 .findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
@@ -336,7 +330,6 @@ class GenerateActivityReportUseCaseTest {
         LocalDate startDate = LocalDate.of(2026, 10, 1);
         LocalDate endDate = LocalDate.of(2026, 10, 31);
 
-        EnrollmentActivity judoEnrollment = new EnrollmentActivity(judoActivity, new BigDecimal("200.00"));
 
         when(enrollmentRepository.findActiveEnrollmentActivitiesByStartDateBetweenAndSport(startDate, endDate, swimming))
                 .thenReturn(List.of());
@@ -483,6 +476,175 @@ class GenerateActivityReportUseCaseTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("End date cannot be before start date");
     }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should cover enrollment start date boundaries for average occupancy")
+    void shouldCoverEnrollmentStartDateBoundariesForAverageOccupancy() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+        EnrollmentActivity startsOnPeriodStart = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        EnrollmentActivity startsWithinPeriod = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 15));
+        EnrollmentActivity startsAfterPeriod = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 11, 1));
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(startsOnPeriodStart, startsWithinPeriod, startsAfterPeriod));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+        ActivityReportItem item = result.getItems().getFirst();
+        assertThat(item.getEnrollmentCount()).isEqualTo(2);
+        assertThat(item.getRevenue()).isEqualByComparingTo("360.00");
+        assertThat(item.getAverageOccupancy()).isEqualByComparingTo("15.00");
+    }
+
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should ignore enrollment when its activity is absent from the report")
+    void shouldIgnoreEnrollmentWhenActivityIsNotInReport() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+
+        when(activityClassRepository.findAll()).thenReturn(List.of());
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(enrollmentActivity));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems()).isEmpty();
+    }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should exclude an enrollment ended when another starts")
+    void shouldExcludeEnrollmentEndedWhenAnotherStarts() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+        LocalDate changeDate = LocalDate.of(2026, 10, 15);
+
+        EnrollmentActivity endingEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        endingEnrollment.deactivate(changeDate);
+
+        EnrollmentActivity startingEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), changeDate);
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(endingEnrollment, startingEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems().getFirst().getAverageOccupancy())
+                .isEqualByComparingTo("10.00");
+    }
+
+
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should assign enrollments to the matching activity class")
+    void shouldAssignEnrollmentsToTheMatchingActivityClass() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity firstEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        EnrollmentActivity secondEnrollment = new EnrollmentActivity(swimmingActivity, new BigDecimal("250.00"), startDate);
+
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass, swimmingActivity));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(firstEnrollment, secondEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems()).hasSize(2);
+        assertThat(result.getItems().get(0).getActivityClass()).isEqualTo(activityClass);
+        assertThat(result.getItems().get(0).getEnrollmentCount()).isEqualTo(1);
+        assertThat(result.getItems().get(0).getRevenue()).isEqualByComparingTo("180.00");
+        assertThat(result.getItems().get(1).getActivityClass()).isEqualTo(swimmingActivity);
+        assertThat(result.getItems().get(1).getEnrollmentCount()).isEqualTo(1);
+        assertThat(result.getItems().get(1).getRevenue()).isEqualByComparingTo("250.00");
+    }
+
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should validate dates before querying by sport")
+    void shouldValidateDatesBeforeQueryingBySport() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        LocalDate endDate = LocalDate.of(2026, 10, 10);
+
+        assertThatThrownBy(() -> sut.generate(startDate, endDate, swimming))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("End date cannot be before start date");
+
+        verifyNoInteractions(enrollmentRepository);
+    }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should validate dates before querying by day of week")
+    void shouldValidateDatesBeforeQueryingByDayOfWeek() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        LocalDate endDate = LocalDate.of(2026, 10, 10);
+
+        assertThatThrownBy(() -> sut.generate(startDate, endDate, DayOfWeek.MONDAY))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("End date cannot be before start date");
+
+        verifyNoInteractions(enrollmentRepository);
+    }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should validate dates before querying by sport and day of week")
+    void shouldValidateDatesBeforeQueryingBySportAndDayOfWeek() {
+        LocalDate startDate = LocalDate.of(2026, 10, 15);
+        LocalDate endDate = LocalDate.of(2026, 10, 10);
+
+        assertThatThrownBy(() ->
+                sut.generate(startDate, endDate, swimming, DayOfWeek.MONDAY))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("End date cannot be before start date");
+
+        verifyNoInteractions(enrollmentRepository);
+    }
+
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should exclude an ended enrollment from later occupancy samples")
+    void shouldExcludeEndedEnrollmentFromLaterOccupancySamples() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity endedEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        endedEnrollment.deactivate(LocalDate.of(2026, 10, 14));
+
+        EnrollmentActivity secondEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 15));
+
+        EnrollmentActivity thirdEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 20)
+                );
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(endedEnrollment, secondEnrollment, thirdEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems().getFirst().getAverageOccupancy())
+                .isEqualByComparingTo("13.33");
+    }
+
 
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
