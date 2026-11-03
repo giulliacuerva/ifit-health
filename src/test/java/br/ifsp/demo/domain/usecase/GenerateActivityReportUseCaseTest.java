@@ -619,6 +619,31 @@ class GenerateActivityReportUseCaseTest {
         verifyNoInteractions(enrollmentRepository);
     }
 
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should exclude an ended enrollment from later occupancy samples")
+    void shouldExcludeEndedEnrollmentFromLaterOccupancySamples() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity endedEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        endedEnrollment.deactivate(LocalDate.of(2026, 10, 14));
+
+        EnrollmentActivity secondEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 15));
+
+        EnrollmentActivity thirdEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), LocalDate.of(2026, 10, 20)
+                );
+
+        when(activityClassRepository.findAll()).thenReturn(List.of(activityClass));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(endedEnrollment, secondEnrollment, thirdEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems().getFirst().getAverageOccupancy())
+                .isEqualByComparingTo("13.33");
+    }
 
 
     private ActivityClass createActivityClass(int activityCapacity, Schedule schedule) {
