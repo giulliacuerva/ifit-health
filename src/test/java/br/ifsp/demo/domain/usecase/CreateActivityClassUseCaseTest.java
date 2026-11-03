@@ -348,4 +348,16 @@ public class CreateActivityClassUseCaseTest {
                 sut.createNewActivityClass(room, sport, trainer, schedule, -1, new BigDecimal("250.00")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should create ActivityClass when capacity is one")
+    void shouldCreateActivityClassWhenCapacityIsOne() {
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 1, new BigDecimal("250.00"));
+        when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
+
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 1, new BigDecimal("250.00"));
+
+        assertThat(result.getCapacity()).isEqualTo(1);
+    }
 }
