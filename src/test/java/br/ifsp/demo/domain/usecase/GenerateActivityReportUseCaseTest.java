@@ -545,6 +545,32 @@ class GenerateActivityReportUseCaseTest {
 
 
 
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should assign enrollments to the matching activity class")
+    void shouldAssignEnrollmentsToTheMatchingActivityClass() {
+        LocalDate startDate = LocalDate.of(2026, 10, 1);
+        LocalDate endDate = LocalDate.of(2026, 10, 31);
+
+        EnrollmentActivity firstEnrollment = new EnrollmentActivity(activityClass, new BigDecimal("180.00"), startDate);
+        EnrollmentActivity secondEnrollment = new EnrollmentActivity(swimmingActivity, new BigDecimal("250.00"), startDate);
+
+        when(activityClassRepository.findAll())
+                .thenReturn(List.of(activityClass, swimmingActivity));
+        when(enrollmentRepository.findEnrollmentActivitiesByPeriod(startDate, endDate))
+                .thenReturn(List.of(firstEnrollment, secondEnrollment));
+
+        ActivityReport result = sut.generate(startDate, endDate);
+
+        assertThat(result.getItems()).hasSize(2);
+        assertThat(result.getItems().get(0).getActivityClass()).isEqualTo(activityClass);
+        assertThat(result.getItems().get(0).getEnrollmentCount()).isEqualTo(1);
+        assertThat(result.getItems().get(0).getRevenue()).isEqualByComparingTo("180.00");
+        assertThat(result.getItems().get(1).getActivityClass()).isEqualTo(swimmingActivity);
+        assertThat(result.getItems().get(1).getEnrollmentCount()).isEqualTo(1);
+        assertThat(result.getItems().get(1).getRevenue()).isEqualByComparingTo("250.00");
+    }
 
 
 
