@@ -57,9 +57,11 @@ public class CancelEnrollmentActivityUseCaseTest {
         EnrollmentActivity otherEnrollmentActivity = enrollment.getEnrollmentActivities().get(1);
 
         when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
+        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
-        sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
+        Enrollment result = sut.cancelActivity(customer, enrollmentActivityToCancel.getId());
 
+        assertThat(result).isSameAs(enrollment);
         assertThat(enrollmentActivityToCancel.isActive()).isFalse();
         assertThat(otherEnrollmentActivity.isActive()).isTrue();
         assertThat(enrollment.isActive()).isTrue();
