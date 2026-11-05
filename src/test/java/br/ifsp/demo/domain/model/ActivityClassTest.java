@@ -51,6 +51,16 @@ class ActivityClassTest {
         assertThat(activity.equals(activity)).isTrue();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with null")
+    void shouldReturnFalseWhenComparedWithNull() {
+        ActivityClass activity = createDefaultActivityClass();
+
+        assertThat(activity.equals(null)).isFalse();
+    }
+
 
 
 
