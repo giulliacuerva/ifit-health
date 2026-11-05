@@ -34,4 +34,14 @@ class AddressTest {
         assertThat(address.equals(null)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with another type")
+    void shouldReturnFalseWhenComparedWithAnotherType() {
+        Address address = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(address.equals("not an address")).isFalse();
+    }
+
 }
