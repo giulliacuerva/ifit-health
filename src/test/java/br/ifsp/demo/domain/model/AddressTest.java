@@ -77,5 +77,16 @@ class AddressTest {
         assertThat(first.equals(second)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the street differs")
+    void shouldReturnFalseWhenStreetDiffers() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("12345-678", "10", "Rua B", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
 
 }
