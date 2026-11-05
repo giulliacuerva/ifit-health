@@ -44,4 +44,15 @@ class AddressTest {
         assertThat(address.equals("not an address")).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should consider addresses with the same data equal")
+    void shouldConsiderAddressesWithTheSameDataEqual() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isTrue();
+    }
+
 }
