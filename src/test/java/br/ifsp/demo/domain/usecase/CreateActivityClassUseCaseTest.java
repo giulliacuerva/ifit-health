@@ -21,6 +21,7 @@ import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 
+
 @ExtendWith(MockitoExtension.class)
 public class CreateActivityClassUseCaseTest {
 
@@ -337,5 +338,27 @@ public class CreateActivityClassUseCaseTest {
         assertThatThrownBy(() ->
                 sut.createNewActivityClass(room, sport, trainer, schedule, 10, null))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should not create ActivityClass when monthly fee is null")
+    void shouldNotCreateActivityClassWhenCapacityIsNegative() {
+        assertThatThrownBy(() ->
+                sut.createNewActivityClass(room, sport, trainer, schedule, -1, new BigDecimal("250.00")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+    @Test
+    @Tag("Mutation")
+    @Tag("UnitTest")
+    @DisplayName("Should create ActivityClass when capacity is one")
+    void shouldCreateActivityClassWhenCapacityIsOne() {
+        ActivityClass activityClass = new ActivityClass(room, sport, trainer, schedule, 1, new BigDecimal("250.00"));
+        when(activityClassRepo.save(any(ActivityClass.class))).thenReturn(activityClass);
+
+        ActivityClass result = sut.createNewActivityClass(room, sport, trainer, schedule, 1, new BigDecimal("250.00"));
+
+        assertThat(result.getCapacity()).isEqualTo(1);
     }
 }
