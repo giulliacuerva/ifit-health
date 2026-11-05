@@ -1,0 +1,103 @@
+package br.ifsp.demo.domain.model;
+
+
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class AddressTest {
+
+    private Address createAddress(String cep, String number, String street, String city, String state) {
+        return new Address(cep, number, street, city, state);
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should consider the same address equal")
+    void shouldConsiderTheSameAddressEqual() {
+        Address address = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(address.equals(address)).isTrue();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with null")
+    void shouldReturnFalseWhenComparedWithNull() {
+        Address address = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(address.equals(null)).isFalse();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with another type")
+    void shouldReturnFalseWhenComparedWithAnotherType() {
+        Address address = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(address.equals("not an address")).isFalse();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should consider addresses with the same data equal")
+    void shouldConsiderAddressesWithTheSameDataEqual() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isTrue();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the postal code differs")
+    void shouldReturnFalseWhenPostalCodeDiffers() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("87654-321", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the number differs")
+    void shouldReturnFalseWhenNumberDiffers() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("12345-678", "20", "Rua A", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the street differs")
+    void shouldReturnFalseWhenStreetDiffers() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("12345-678", "10", "Rua B", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the city differs")
+    void shouldReturnFalseWhenCityDiffers() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("12345-678", "10", "Rua A", "Araraquara", "SP");
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
+
+}
