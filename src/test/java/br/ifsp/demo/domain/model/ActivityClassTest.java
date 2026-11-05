@@ -164,5 +164,20 @@ class ActivityClassTest {
         assertThat(first.equals(second)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the capacity differs")
+    void shouldReturnFalseWhenCapacityDiffers() {
+        ActivityClass first = createDefaultActivityClass();
+        ActivityClass second = createActivityClass(
+                id, room, sport, trainer, schedule,
+                11, new BigDecimal("180.00")
+        );
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
+
 
 }
