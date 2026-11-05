@@ -24,4 +24,14 @@ class AddressTest {
         assertThat(address.equals(address)).isTrue();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with null")
+    void shouldReturnFalseWhenComparedWithNull() {
+        Address address = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(address.equals(null)).isFalse();
+    }
+
 }
