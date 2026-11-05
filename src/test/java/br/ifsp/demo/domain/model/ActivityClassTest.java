@@ -1,0 +1,57 @@
+package br.ifsp.demo.domain.model;
+
+import br.ifsp.demo.domain.model.enums.RoomType;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class ActivityClassTest {
+
+    private final UUID id = UUID.randomUUID();
+    private final Room room = new Room(
+            UUID.randomUUID(), "Room A", RoomType.GYM, 20
+    );
+    private final Sport sport = new Sport(
+            UUID.randomUUID(), "Basketball", RoomType.GYM
+    );
+    private final Trainer trainer = new Trainer(UUID.randomUUID(), "Ana");
+    private final Schedule schedule = new Schedule(
+            Set.of(DayOfWeek.MONDAY),
+            LocalTime.of(10, 0),
+            LocalTime.of(11, 0)
+    );
+
+    private ActivityClass createActivityClass(UUID id, Room room, Sport sport, Trainer trainer, Schedule schedule, int capacity, BigDecimal monthlyFee) {
+        return new ActivityClass(
+                id, room, sport, trainer, schedule, capacity, monthlyFee, true
+        );
+    }
+
+    private ActivityClass createDefaultActivityClass() {
+        return createActivityClass(
+                id, room, sport, trainer, schedule, 10, new BigDecimal("180.00")
+        );
+    }
+
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should consider the same activity class equal")
+    void shouldConsiderTheSameActivityClassEqual() {
+        ActivityClass activity = createDefaultActivityClass();
+
+        assertThat(activity.equals(activity)).isTrue();
+    }
+
+
+
+
+}
