@@ -19,5 +19,13 @@ public class TrainerTest {
         assertThat(trainer.equals(null)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with another type")
+    void shouldReturnFalseWhenComparedWithAnotherType() {
+        Trainer trainer = new Trainer(UUID.randomUUID(), "Ana");
 
+        assertThat(trainer.equals("not a trainer")).isFalse();
+    }
 }
