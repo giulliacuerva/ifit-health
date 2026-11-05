@@ -55,4 +55,15 @@ class AddressTest {
         assertThat(first.equals(second)).isTrue();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the postal code differs")
+    void shouldReturnFalseWhenPostalCodeDiffers() {
+        Address first = createAddress("12345-678", "10", "Rua A", "São Carlos", "SP");
+        Address second = createAddress("87654-321", "10", "Rua A", "São Carlos", "SP");
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
 }
