@@ -145,5 +145,24 @@ class ActivityClassTest {
         assertThat(first.equals(second)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the schedule differs")
+    void shouldReturnFalseWhenScheduleDiffers() {
+        ActivityClass first = createDefaultActivityClass();
+        Schedule anotherSchedule = new Schedule(
+                Set.of(DayOfWeek.TUESDAY),
+                LocalTime.of(10, 0),
+                LocalTime.of(11, 0)
+        );
+        ActivityClass second = createActivityClass(
+                id, room, sport, trainer, anotherSchedule,
+                10, new BigDecimal("180.00")
+        );
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
 
 }
