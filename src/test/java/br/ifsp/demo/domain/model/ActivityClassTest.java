@@ -61,6 +61,15 @@ class ActivityClassTest {
         assertThat(activity.equals(null)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when compared with another type")
+    void shouldReturnFalseWhenComparedWithAnotherType() {
+        ActivityClass activity = createDefaultActivityClass();
+
+        assertThat(activity.equals("not an activity class")).isFalse();
+    }
 
 
 
