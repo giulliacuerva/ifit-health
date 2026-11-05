@@ -178,6 +178,19 @@ class ActivityClassTest {
         assertThat(first.equals(second)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the monthly fee differs")
+    void shouldReturnFalseWhenMonthlyFeeDiffers() {
+        ActivityClass first = createDefaultActivityClass();
+        ActivityClass second = createActivityClass(
+                id, room, sport, trainer, schedule,
+                10, new BigDecimal("200.00")
+        );
+
+        assertThat(first.equals(second)).isFalse();
+    }
 
 
 }
