@@ -71,6 +71,16 @@ class ActivityClassTest {
         assertThat(activity.equals("not an activity class")).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should consider activity classes with the same data equal")
+    void shouldConsiderActivityClassesWithTheSameDataEqual() {
+        ActivityClass first = createDefaultActivityClass();
+        ActivityClass second = createDefaultActivityClass();
+
+        assertThat(first.equals(second)).isTrue();
+    }
 
 
 }
