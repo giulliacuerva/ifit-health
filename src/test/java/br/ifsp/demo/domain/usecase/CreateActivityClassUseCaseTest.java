@@ -21,6 +21,7 @@ import br.ifsp.demo.domain.model.*;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 
+
 @ExtendWith(MockitoExtension.class)
 public class CreateActivityClassUseCaseTest {
 
