@@ -113,5 +113,22 @@ class ActivityClassTest {
         assertThat(first.equals(second)).isFalse();
     }
 
+    @Test
+    @Tag("Structural")
+    @Tag("UnitTest")
+    @DisplayName("Should return false when the sport differs")
+    void shouldReturnFalseWhenSportDiffers() {
+        ActivityClass first = createDefaultActivityClass();
+        Sport anotherSport = new Sport(
+                UUID.randomUUID(), "Volleyball", RoomType.GYM
+        );
+        ActivityClass second = createActivityClass(
+                id, room, anotherSport, trainer, schedule,
+                10, new BigDecimal("180.00")
+        );
+
+        assertThat(first.equals(second)).isFalse();
+    }
+
 
 }
