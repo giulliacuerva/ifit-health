@@ -1,4 +1,4 @@
-@auth_token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbmEuc291emFAZXhhbXBsZS5jb20iLCJpYXQiOjE3OTMyMzQ1NTEsImV4cCI6MTc5MzI0MzE5MX0.8wOwQPb2QgOw8EzmvmrOHWNptLISlOJTn-VZzi0rzi0
+@auth_token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbmEuc291emFAZXhhbXBsZS5jb20iLCJpYXQiOjE3OTM5OTk2NTAsImV4cCI6MTc5NDAwODI5MH0.7wjEz-46QR56ee5kRkDdPMgdmN3IrznvM-JZQnhxYvQ"
 
 @base_url = http://localhost:8080/api/v1
 
@@ -8,9 +8,9 @@ Content-Type: application/json
 Authorization: Bearer {{auth_token}}
 
 {
-  "sportId": "15e8ef23-350a-47e2-9e60-052cf6fe48da",
-  "roomId": "7ec5a107-ea02-4773-a179-8e2e6ecd7bbe",
-  "trainerId": "69eadcea-33ae-4a0a-81c9-6da3cb970efc",
+  "sportId": "932dc1dc-fa6e-48c0-89f5-4d9e8a61a4ba",
+  "roomId": "81ed8aab-deda-4a43-8687-c86d2e9cb236",
+  "trainerId": "87a7f402-872a-4d88-9225-e774415f69b9",
   "weekdays": [
     "MONDAY"
   ],
@@ -27,9 +27,9 @@ Content-Type: application/json
 Authorization: Bearer {{auth_token}}
 
 {
-  "sportId": "971528da-c963-4299-8b5c-15f47348d10a",
-  "roomId": "7ec5a107-ea02-4773-a179-8e2e6ecd7bbe",
-  "trainerId": "69eadcea-33ae-4a0a-81c9-6da3cb970efc",
+  "sportId": "932dc1dc-fa6e-48c0-89f5-4d9e8a61a4ba",
+  "roomId": "df8a45de-4c39-4a30-aa09-74d71f5266ed",
+  "trainerId": "87a7f402-872a-4d88-9225-e774415f69b9",
   "weekdays": [
     "MONDAY"
   ],

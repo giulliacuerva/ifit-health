@@ -1,11 +1,13 @@
 package br.ifsp.demo.service;
 
+import br.ifsp.demo.domain.model.Customer;
 import br.ifsp.demo.domain.model.Enrollment;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
 import br.ifsp.demo.domain.repository.CustomerRepository;
 import br.ifsp.demo.domain.usecase.CancelEnrollmentActivityUseCase;
 import br.ifsp.demo.domain.usecase.EnrollCustomerUseCase;
 import br.ifsp.demo.exception.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -31,8 +33,7 @@ public class EnrollmentService {
 
     public Enrollment enroll(UUID customerId, UUID authenticatedUserId,
                              List<UUID> activityClassIds) {
-        var customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
+        Customer customer = findCustomerOwnedByAuthenticatedUser(customerId, authenticatedUserId);
 
         for (UUID activityClassId : activityClassIds) {
             if (activityClassRepository.findById(activityClassId) == null) {
@@ -45,10 +46,19 @@ public class EnrollmentService {
 
     public Enrollment cancelActivity(UUID customerId, UUID authenticatedUserId,
                                      UUID enrollmentActivityId, LocalDate endDate) {
-        var customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
-
+        Customer customer = findCustomerOwnedByAuthenticatedUser(customerId, authenticatedUserId);
         return cancelUseCase.cancelActivity(customer, enrollmentActivityId, endDate);
     }
 
+    private Customer findCustomerOwnedByAuthenticatedUser(UUID customerId, UUID authenticatedUserId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
+
+        if (authenticatedUserId == null || !authenticatedUserId.equals(customer.getUserId())) {
+            throw new AccessDeniedException(
+                    "You are not allowed to manage enrollments for this customer."
+            );
+        }
+        return customer;
+    }
 }
