@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,32 +24,25 @@ public class UserController {
     private final AuthenticationService authenticationService;
 
     @Operation(
-            summary = "Register a new user.",
-            description = "Returns the new user id."
+            summary = "Register a new student account.",
+            description = "Creates an app_user account and the related customers record."
     )
     @ApiResponses({
             @ApiResponse(
-                    responseCode = "201", description = "Successful operation.",
+                    responseCode = "201", description = "Student account created.",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = RegisterUserRequest.class)
+                            schema = @Schema(implementation = RegisterUserResponse.class)
                     )
             ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Authentication fails.",
-                    content = @Content(schema = @Schema(hidden = true))
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "User email is already registered.",
-                    content = @Content(schema = @Schema(hidden = true))
-            )
+            @ApiResponse(responseCode = "400", description = "Invalid registration data."),
+            @ApiResponse(responseCode = "409", description = "E-mail or CPF already registered.")
     })
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterUserRequest request) {
-        final RegisterUserResponse response = authenticationService.register(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    public ResponseEntity<RegisterUserResponse> register(
+            @Valid @RequestBody RegisterUserRequest request) {
+        RegisterUserResponse response = authenticationService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Operation(
@@ -63,15 +57,11 @@ public class UserController {
                             schema = @Schema(implementation = AuthResponse.class)
                     )
             ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Authentication fails.",
-                    content = @Content(schema = @Schema(hidden = true))
-            )
+            @ApiResponse(responseCode = "401", description = "Authentication fails.")
     })
     @PostMapping("/authenticate")
-    public ResponseEntity<?> register(@RequestBody AuthRequest request) {
-        final AuthResponse response = authenticationService.authenticate(request);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<AuthResponse> authenticate(@RequestBody AuthRequest request) {
+        AuthResponse response = authenticationService.authenticate(request);
+        return ResponseEntity.ok(response);
     }
 }

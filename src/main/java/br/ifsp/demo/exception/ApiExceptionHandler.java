@@ -5,6 +5,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.dao.DataIntegrityViolationException;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -23,6 +28,26 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidScheduleException.class)
     public ResponseEntity<?> handleInvalidSchedule(InvalidScheduleException e) {
         return response(e, BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidation(MethodArgumentNotValidException e) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        e.getBindingResult().getFieldErrors().forEach(error ->
+                errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", BAD_REQUEST.value());
+        body.put("message", "Existem campos inválidos no cadastro.");
+        body.put("errors", errors);
+        body.put("timestamp", ZonedDateTime.now(ZoneId.of("Z")));
+        return new ResponseEntity<>(body, BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrity(DataIntegrityViolationException e) {
+        return response(new IllegalStateException(
+                "A operação viola uma restrição de integridade do banco de dados.", e), CONFLICT);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

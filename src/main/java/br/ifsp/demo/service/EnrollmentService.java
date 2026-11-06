@@ -1,8 +1,9 @@
 package br.ifsp.demo.service;
 
+import br.ifsp.demo.domain.model.Customer;
 import br.ifsp.demo.domain.model.Enrollment;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
-import br.ifsp.demo.domain.repository.EnrollmentRepository;
+import br.ifsp.demo.domain.repository.CustomerRepository;
 import br.ifsp.demo.domain.usecase.CancelEnrollmentActivityUseCase;
 import br.ifsp.demo.domain.usecase.EnrollCustomerUseCase;
 import br.ifsp.demo.exception.ResourceNotFoundException;
@@ -15,16 +16,16 @@ import java.util.UUID;
 
 @Service
 public class EnrollmentService {
-    private final EnrollmentRepository enrollmentRepository;
+    private final CustomerRepository customerRepository;
     private final ActivityClassRepository activityClassRepository;
     private final EnrollCustomerUseCase enrollUseCase;
     private final CancelEnrollmentActivityUseCase cancelUseCase;
 
-    public EnrollmentService(EnrollmentRepository enrollmentRepository,
+    public EnrollmentService(CustomerRepository customerRepository,
                              ActivityClassRepository activityClassRepository,
                              EnrollCustomerUseCase enrollUseCase,
                              CancelEnrollmentActivityUseCase cancelUseCase) {
-        this.enrollmentRepository = enrollmentRepository;
+        this.customerRepository = customerRepository;
         this.activityClassRepository = activityClassRepository;
         this.enrollUseCase = enrollUseCase;
         this.cancelUseCase = cancelUseCase;
@@ -32,8 +33,7 @@ public class EnrollmentService {
 
     public Enrollment enroll(UUID customerId, UUID authenticatedUserId,
                              List<UUID> activityClassIds) {
-        var customer = enrollmentRepository.findCustomerById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
+        Customer customer = findCustomerOwnedByAuthenticatedUser(customerId, authenticatedUserId);
 
         for (UUID activityClassId : activityClassIds) {
             if (activityClassRepository.findById(activityClassId) == null) {
@@ -46,10 +46,19 @@ public class EnrollmentService {
 
     public Enrollment cancelActivity(UUID customerId, UUID authenticatedUserId,
                                      UUID enrollmentActivityId, LocalDate endDate) {
-        var customer = enrollmentRepository.findCustomerById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
-
+        Customer customer = findCustomerOwnedByAuthenticatedUser(customerId, authenticatedUserId);
         return cancelUseCase.cancelActivity(customer, enrollmentActivityId, endDate);
     }
 
+    private Customer findCustomerOwnedByAuthenticatedUser(UUID customerId, UUID authenticatedUserId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
+
+        if (authenticatedUserId == null || !authenticatedUserId.equals(customer.getUserId())) {
+            throw new AccessDeniedException(
+                    "You are not allowed to manage enrollments for this customer."
+            );
+        }
+        return customer;
+    }
 }

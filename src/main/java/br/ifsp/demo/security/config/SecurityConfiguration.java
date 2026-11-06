@@ -1,8 +1,10 @@
 package br.ifsp.demo.security.config;
 
+import br.ifsp.demo.security.user.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -27,6 +29,8 @@ public class SecurityConfiguration {
             "/api/v1/swagger-ui/**"
     };
 
+    private static final String USER = Role.USER.name();
+    private static final String ADMIN = Role.ADMIN.name();
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationProvider authenticationProvider;
 
@@ -34,16 +38,32 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req ->
-                        req.requestMatchers(WHITE_LIST_URL)
-                                .permitAll()
-                                .anyRequest()
-                                .authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/activity-classes",
+                                "/api/v1/activity-classes/*")
+                        .hasAnyAuthority(USER, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/activity-classes")
+                        .hasAuthority(ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/activity-classes/*")
+                        .hasAuthority(ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/activity-reports")
+                        .hasAuthority(ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/enrollment")
+                        .hasAuthority(USER)
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/v1/customers/*/enrollment/activities/*")
+                        .hasAuthority(USER)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/hello")
+                        .hasAnyAuthority(USER, ADMIN)
+                        .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(it -> it.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
-        return http.build();
+                .exceptionHandling(it -> it
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                );return http.build();
     }
 }

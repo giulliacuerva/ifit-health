@@ -21,50 +21,40 @@ public class DatabaseBuilder {
     }
 
     public void build() {
-        try {
-            dropDatabaseIfExists();
+        try (Connection connection = DriverManager.getConnection(DATABASE_URL)) {
+            enableForeignKeys(connection);
+            createAppUserTable(connection);
+            createCustomersTable(connection);
 
-            try (Connection connection = DriverManager.getConnection(DATABASE_URL)) {
-                enableForeignKeys(connection);
-                connection.setAutoCommit(false);
+            connection.setAutoCommit(false);
+            try {
+                createTrainerTable(connection);
+                createSportsTable(connection);
+                createRoomsTable(connection);
+                createActivityClassTable(connection);
+                createActivityPricesTable(connection);
+                createEnrollmentsTable(connection);
+                createEnrollmentActivitiesTable(connection);
+                createIndexes(connection);
 
-                try {
-                    createCustomersTable(connection);
-                    createTrainerTable(connection);
-                    createSportsTable(connection);
-                    createRoomsTable(connection);
+                insertTrainers(connection);
+                insertSports(connection);
+                insertRooms(connection);
 
-                    createActivityClassTable(connection);
-                    createActivityPricesTable(connection);
-                    createEnrollmentsTable(connection);
-                    createEnrollmentActivitiesTable(connection);
+                connection.commit();
 
-                    insertCustomers(connection);
-                    insertTrainers(connection);
-                    insertSports(connection);
-                    insertRooms(connection);
+                System.out.println("Database schema prepared successfully.");
 
-                    connection.commit();
-
-                    System.out.println("❤ All set ❤");
-                } catch (SQLException e) {
-                    connection.rollback();
-                    throw e;
-                }
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
             }
 
-        } catch (IOException | SQLException e) {
-            System.err.println("Ops! Something went wrong.");
-            e.printStackTrace();
-        }
-    }
-
-    private void dropDatabaseIfExists() throws IOException {
-        final Path path = Paths.get(DATABASE_NAME);
-
-        if (Files.exists(path)) {
-            Files.delete(path);
-            System.out.println("Removing existing database...");
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Could not prepare the SQLite database without losing existing data.",
+                    e
+            );
         }
     }
 
@@ -72,6 +62,22 @@ public class DatabaseBuilder {
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("PRAGMA foreign_keys = ON");
         }
+    }
+
+    private void createAppUserTable(Connection connection) throws SQLException {
+        final String sql = """
+                CREATE TABLE IF NOT EXISTS app_user (
+                    id VARCHAR(36) NOT NULL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    lastname VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    role VARCHAR(20) NOT NULL
+                        CHECK (role IN ('USER', 'ADMIN'))
+                );
+                """;
+
+        execute(connection, sql);
     }
 
     private void createCustomersTable(Connection connection) throws SQLException {
@@ -91,7 +97,8 @@ public class DatabaseBuilder {
                     address_city TEXT,
                     address_state TEXT,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES app_user(id)
                 );
                 """;
 
@@ -220,77 +227,73 @@ public class DatabaseBuilder {
         execute(connection, sql);
     }
 
-    private void insertCustomers(Connection connection) throws SQLException {
-        final String sql = """
-                INSERT INTO customers (
-                    id,
-                    user_id,
-                    cpf,
-                    name,
-                    birthdate,
-                    gender,
-                    tel,
-                    email,
-                    address_cep,
-                    address_number,
-                    address_street,
-                    address_city,
-                    address_state
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                """;
+    private void createIndexes(Connection connection)
+            throws SQLException {
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            UUID customerId = UUID.randomUUID();
+        String[] indexes = {
 
-            stmt.setString(1, customerId.toString());
-            stmt.setNull(2, java.sql.Types.VARCHAR);
-            stmt.setString(3, "12345678901");
-            stmt.setString(4, "Ana Souza");
-            stmt.setString(5, "1998-05-12");
-            stmt.setString(6, "FEMALE");
-            stmt.setString(7, "16999990001");
-            stmt.setString(8, "ana.souza@example.com");
-            stmt.setString(9, "13560-001");
-            stmt.setString(10, "100");
-            stmt.setString(11, "Rua das Flores");
-            stmt.setString(12, "São Carlos");
-            stmt.setString(13, "SP");
-            stmt.executeUpdate();
+                """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_email_nocase
+        ON app_user(email COLLATE NOCASE)
+        """,
 
-            customerId = UUID.randomUUID();
+                """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_user_id_unique
+        ON customers(user_id)
+        WHERE user_id IS NOT NULL
+        """,
 
-            stmt.setString(1, customerId.toString());
-            stmt.setNull(2, java.sql.Types.VARCHAR);
-            stmt.setString(3, "23456789012");
-            stmt.setString(4, "Bruno Lima");
-            stmt.setString(5, "1995-09-23");
-            stmt.setString(6, "MALE");
-            stmt.setString(7, "16999990002");
-            stmt.setString(8, "bruno.lima@example.com");
-            stmt.setString(9, "13560-002");
-            stmt.setString(10, "250");
-            stmt.setString(11, "Avenida Central");
-            stmt.setString(12, "São Carlos");
-            stmt.setString(13, "SP");
-            stmt.executeUpdate();
+                """
+        CREATE INDEX IF NOT EXISTS idx_customers_email_nocase
+        ON customers(email COLLATE NOCASE)
+        """,
 
-            customerId = UUID.randomUUID();
+                """
+        CREATE INDEX IF NOT EXISTS idx_activity_class_room_active
+        ON activity_class(room_id, active)
+        """,
 
-            stmt.setString(1, customerId.toString());
-            stmt.setNull(2, java.sql.Types.VARCHAR);
-            stmt.setString(3, "34567890123");
-            stmt.setString(4, "Carla Mendes");
-            stmt.setString(5, "2000-02-10");
-            stmt.setString(6, "FEMALE");
-            stmt.setString(7, "16999990003");
-            stmt.setString(8, "carla.mendes@example.com");
-            stmt.setString(9, "13560-003");
-            stmt.setString(10, "45");
-            stmt.setString(11, "Rua das Palmeiras");
-            stmt.setString(12, "São Carlos");
-            stmt.setString(13, "SP");
-            stmt.executeUpdate();
+                """
+        CREATE INDEX IF NOT EXISTS idx_activity_class_coach_active
+        ON activity_class(coach_id, active)
+        """,
+
+                """
+        CREATE INDEX IF NOT EXISTS idx_activity_class_sport
+        ON activity_class(sport_id)
+        """,
+
+                """
+        CREATE INDEX IF NOT EXISTS idx_enrollment_activities_activity_status
+        ON enrollment_activities(activity_id, status)
+        """,
+
+                """
+        CREATE INDEX IF NOT EXISTS idx_enrollment_activities_enrollment_start
+        ON enrollment_activities(enrollment_id, start_date)
+        """,
+
+                """
+        CREATE INDEX IF NOT EXISTS idx_enrollment_activities_status_start
+        ON enrollment_activities(status, start_date)
+        """,
+
+                """
+        CREATE INDEX IF NOT EXISTS idx_enrollment_activities_period
+        ON enrollment_activities(start_date, end_date)
+        """,
+
+                """
+        CREATE INDEX IF NOT EXISTS idx_trainer_email_nocase
+        ON trainer(email COLLATE NOCASE)
+        """
+        };
+
+        try (Statement statement = connection.createStatement()) {
+
+            for (String index : indexes) {
+                statement.execute(index);
+            }
         }
     }
 
