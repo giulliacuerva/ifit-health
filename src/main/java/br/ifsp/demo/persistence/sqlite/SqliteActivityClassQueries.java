@@ -40,7 +40,17 @@ public class SqliteActivityClassQueries {
                 ac.end_time,
                 ac.capacity,
                 COALESCE(aec.enrolled_count, 0) AS enrolled_count,
-                ac.monthly_fee,
+                COALESCE(
+                    (
+                        SELECT ap.monthly_fee
+                        FROM activity_prices ap
+                        WHERE ap.activity_id = ac.id
+                          AND date(ap.valid_from) <= date('now', 'localtime')
+                        ORDER BY date(ap.valid_from) DESC, ap.valid_from DESC
+                        LIMIT 1
+                    ),
+                    ac.monthly_fee
+                ) AS monthly_fee,
                 ac.active
             FROM activity_class ac
             JOIN sports s ON s.id = ac.sport_id
