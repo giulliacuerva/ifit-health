@@ -31,7 +31,6 @@ public class SecurityConfiguration {
 
     private static final String USER = Role.USER.name();
     private static final String ADMIN = Role.ADMIN.name();
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationProvider authenticationProvider;
 
@@ -41,35 +40,28 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll()
-
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/auth/me",
                                 "/api/v1/activity-classes",
                                 "/api/v1/activity-classes/*")
                         .hasAnyAuthority(USER, ADMIN)
-
-                        .requestMatchers(HttpMethod.GET, "/api/v1/me/enrollment")
-                        .hasAuthority(USER)
-
-                        .requestMatchers(HttpMethod.POST, "/api/v1/me/enrollment")
-                        .hasAuthority(USER)
-
-                        .requestMatchers(HttpMethod.DELETE,
-                                "/api/v1/me/enrollment/activities/*")
-                        .hasAuthority(USER)
-
                         .requestMatchers(HttpMethod.POST, "/api/v1/activity-classes")
                         .hasAuthority(ADMIN)
-
                         .requestMatchers(HttpMethod.PUT, "/api/v1/activity-classes/*")
                         .hasAuthority(ADMIN)
-
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/sports",
+                                "/api/v1/rooms",
+                                "/api/v1/trainers")
+                        .hasAuthority(ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/v1/activity-reports")
                         .hasAuthority(ADMIN)
-
+                        .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/enrollment")
+                        .hasAuthority(USER)
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/v1/customers/*/enrollment/activities/*")
+                        .hasAuthority(USER)
                         .requestMatchers(HttpMethod.GET, "/api/v1/hello")
                         .hasAnyAuthority(USER, ADMIN)
-
                         .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
@@ -77,8 +69,6 @@ public class SecurityConfiguration {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(it -> it
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                );
-
-        return http.build();
+                );return http.build();
     }
 }
