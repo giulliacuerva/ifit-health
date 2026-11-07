@@ -19,13 +19,17 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class EnrollCustomerUseCaseTest {
@@ -36,12 +40,13 @@ public class EnrollCustomerUseCaseTest {
     private ActivityClassRepository activityClassRepo;
     @Mock
     private EnrollmentRepository enrollmentRepo;
+
     private Customer customer;
     private Enrollment enrollment;
     private Set<DayOfWeek> classDays;
 
     @BeforeEach
-    public void setup(){
+    public void setup() {
         customer = new Customer("teste", "teste@gmail.com");
         enrollment = new Enrollment(customer);
         classDays = Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY);
@@ -54,14 +59,15 @@ public class EnrollCustomerUseCaseTest {
     void shouldCreateEnrollmentWhenCustomerHasNoEnrollment() {
         Set<DayOfWeek> classDays = Set.of(DayOfWeek.MONDAY);
         Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
-
         ActivityClass activityClass = createActivityClass(10, schedule);
 
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.empty());
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.save(any(Enrollment.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(enrollmentRepo.enroll(eq(customer), anyList())).thenAnswer(invocation -> {
+            List<ActivityClass> activities = invocation.getArgument(1);
+            Enrollment newEnrollment = new Enrollment(customer);
+            newEnrollment.addActivities(activities);
+            return newEnrollment;
+        });
 
         Enrollment result = sut.enroll(customer, List.of(activityClass.getId()));
 
@@ -69,8 +75,7 @@ public class EnrollCustomerUseCaseTest {
         assertThat(result.getCustomer()).isEqualTo(customer);
         assertThat(result.getEnrollmentActivities()).hasSize(1);
 
-        verify(enrollmentRepo).findByCustomer(customer);
-        verify(enrollmentRepo).save(any(Enrollment.class));
+        verify(enrollmentRepo).enroll(customer, List.of(activityClass));
     }
 
     @Test
@@ -79,13 +84,8 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should enroll customer in activity")
     void shouldEnrollCustomerInActivity() {
         ActivityClass activityClass = createActivityClass(10);
-
-        List<EnrollmentActivity> enrollmentActivities = List.of();
-
+        stubEnrollmentRepositoryToAddActivities(enrollment);
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(enrollmentActivities);
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
-        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
 
         Enrollment result = sut.enroll(customer, List.of(activityClass.getId()));
 
@@ -93,7 +93,7 @@ public class EnrollCustomerUseCaseTest {
         assertThat(result.getCustomer()).isEqualTo(customer);
         assertThat(result.getEnrollmentActivities()).hasSize(1);
 
-        verify(enrollmentRepo).save(enrollment);
+        verify(enrollmentRepo).enroll(customer, List.of(activityClass));
     }
 
     @Test
@@ -108,19 +108,18 @@ public class EnrollCustomerUseCaseTest {
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
         when(activityClassRepo.findById(anotherActivityClass.getId())).thenReturn(anotherActivityClass);
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(anotherActivityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
-        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
-
-        Enrollment result = sut.enroll(customer, List.of(activityClass.getId(),anotherActivityClass.getId()));
+        Enrollment result = sut.enroll(
+                customer,
+                List.of(activityClass.getId(), anotherActivityClass.getId())
+        );
 
         assertThat(result).isEqualTo(enrollment);
         assertThat(result.getCustomer()).isEqualTo(customer);
         assertThat(result.getEnrollmentActivities()).hasSize(2);
 
-        verify(enrollmentRepo).save(enrollment);
+        verify(enrollmentRepo).enroll(customer, List.of(activityClass, anotherActivityClass));
     }
 
     @Test
@@ -129,12 +128,11 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should reject enrollment when activity is full")
     void shouldRejectEnrollmentWhenActivityIsFull() {
         ActivityClass activityClass = createActivityClass(1);
-
-        EnrollmentActivity enrollmentActivity = new EnrollmentActivity(activityClass, new BigDecimal("200.00"));
-
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass))
-                .thenReturn(List.of(enrollmentActivity));
+        when(enrollmentRepo.enroll(customer, List.of(activityClass)))
+                .thenThrow(new CapacityIsGreaterThanAcceptedException(
+                        "The activity has no available vacancies: " + activityClass.getId()
+                ));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
                 .isInstanceOf(CapacityIsGreaterThanAcceptedException.class);
@@ -156,8 +154,7 @@ public class EnrollCustomerUseCaseTest {
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -170,18 +167,16 @@ public class EnrollCustomerUseCaseTest {
     @Tag("UnitTest")
     @DisplayName("Should reject enrollment when selected activities have conflicting schedules")
     void shouldRejectEnrollmentWhenSelectedActivitiesHaveConflictingSchedules() {
-        Set<DayOfWeek> ActivityDays = Set.of(DayOfWeek.MONDAY);
-        Schedule firstSchedule = new Schedule(ActivityDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
+        Set<DayOfWeek> activityDays = Set.of(DayOfWeek.MONDAY);
+        Schedule firstSchedule = new Schedule(activityDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
         ActivityClass activity = createActivityClass(10, firstSchedule);
 
-        Schedule secondSchedule = new Schedule(ActivityDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
+        Schedule secondSchedule = new Schedule(activityDays, LocalTime.of(10, 30), LocalTime.of(11, 30));
         ActivityClass anotherActivity = createActivityClass(10, secondSchedule);
 
         when(activityClassRepo.findById(activity.getId())).thenReturn(activity);
         when(activityClassRepo.findById(anotherActivity.getId())).thenReturn(anotherActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activity)).thenReturn(List.of());
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(anotherActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activity.getId(), anotherActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -201,8 +196,7 @@ public class EnrollCustomerUseCaseTest {
         enrollment.addActivity(activityClass);
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
                 .isInstanceOf(IllegalStateException.class)
@@ -222,13 +216,12 @@ public class EnrollCustomerUseCaseTest {
         activityClass.deactivate();
 
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(activityClass.getId())))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("The activity is inactive");
+                .hasMessage("The activity is inactive: " + activityClass.getId());
 
-        verify(enrollmentRepo, never()).save(any(Enrollment.class));
+        verify(enrollmentRepo, never()).save(enrollment);
     }
 
     @Test
@@ -241,11 +234,12 @@ public class EnrollCustomerUseCaseTest {
         EnrollmentActivity previousEnrollmentActivity = enrollment.getEnrollmentActivities().getFirst();
         previousEnrollmentActivity.deactivate();
         enrollment.deactivate();
+
         when(activityClassRepo.findById(activityClass.getId())).thenReturn(activityClass);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(activityClass)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.ofNullable(enrollment));
-        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
+        stubEnrollmentRepositoryToAddActivities(enrollment);
+
         sut.enroll(customer, List.of(activityClass.getId()));
+
         assertThat(enrollment.getEnrollmentActivities()).hasSize(2);
         assertThat(enrollment.getEnrollmentActivities().get(0).isActive()).isFalse();
         assertThat(enrollment.getEnrollmentActivities().get(1).isActive()).isTrue();
@@ -258,10 +252,7 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should accept enrollment when schedules are exactly adjacent")
     void shouldAcceptEnrollmentWhenSchedulesAreExactlyAdjacent() {
         Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
-
         Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(10, 0));
-
-
         ActivityClass existingActivity = createActivityClass(8, existingSchedule);
         enrollment.addActivity(existingActivity);
 
@@ -269,15 +260,13 @@ public class EnrollCustomerUseCaseTest {
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
-        when(enrollmentRepo.save(enrollment)).thenReturn(enrollment);
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         Enrollment result = sut.enroll(customer, List.of(newActivity.getId()));
 
         assertThat(result.getEnrollmentActivities()).hasSize(2);
 
-        verify(enrollmentRepo).save(enrollment);
+        verify(enrollmentRepo).enroll(customer, List.of(newActivity));
     }
 
     @Test
@@ -286,7 +275,6 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should reject enrollment when new schedule overlaps existing schedule by one minute at the beginning")
     void shouldRejectEnrollmentWhenNewScheduleOverlapsExistingScheduleByOneMinuteAtBeginning() {
         Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
-
         Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(10, 0));
         ActivityClass existingActivity = createActivityClass(10, existingSchedule);
         enrollment.addActivity(existingActivity);
@@ -295,8 +283,7 @@ public class EnrollCustomerUseCaseTest {
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -310,18 +297,15 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should reject enrollment when new schedule overlaps existing schedule by one minute at the end")
     void shouldRejectEnrollmentWhenNewScheduleOverlapsExistingScheduleByOneMinuteAtEnd() {
         Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
-
         Schedule existingSchedule = new Schedule(monday, LocalTime.of(11, 0), LocalTime.of(12, 0));
         ActivityClass existingActivity = createActivityClass(10, existingSchedule);
         enrollment.addActivity(existingActivity);
 
         Schedule newSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 1));
-
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -335,7 +319,6 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should reject enrollment when new schedule is contained in existing schedule")
     void shouldRejectEnrollmentWhenNewScheduleIsContainedInExistingSchedule() {
         Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
-
         Schedule existingSchedule = new Schedule(monday, LocalTime.of(9, 0), LocalTime.of(12, 0));
         ActivityClass existingActivity = createActivityClass(10, existingSchedule);
         enrollment.addActivity(existingActivity);
@@ -344,8 +327,7 @@ public class EnrollCustomerUseCaseTest {
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -359,7 +341,6 @@ public class EnrollCustomerUseCaseTest {
     @DisplayName("Should reject enrollment when new schedule contains existing schedule")
     void shouldRejectEnrollmentWhenNewScheduleContainsExistingSchedule() {
         Set<DayOfWeek> monday = Set.of(DayOfWeek.MONDAY);
-
         Schedule existingSchedule = new Schedule(monday, LocalTime.of(10, 0), LocalTime.of(11, 0));
         ActivityClass existingActivity = createActivityClass(10, existingSchedule);
         enrollment.addActivity(existingActivity);
@@ -368,8 +349,7 @@ public class EnrollCustomerUseCaseTest {
         ActivityClass newActivity = createActivityClass(10, newSchedule);
 
         when(activityClassRepo.findById(newActivity.getId())).thenReturn(newActivity);
-        when(enrollmentRepo.findEnrolledActivitiesByActivityClass(newActivity)).thenReturn(List.of());
-        when(enrollmentRepo.findByCustomer(customer)).thenReturn(Optional.of(enrollment));
+        stubEnrollmentRepositoryToAddActivities(enrollment);
 
         assertThatThrownBy(() -> sut.enroll(customer, List.of(newActivity.getId())))
                 .isInstanceOf(ActivityScheduleConflictException.class);
@@ -377,8 +357,16 @@ public class EnrollCustomerUseCaseTest {
         verify(enrollmentRepo, never()).save(any(Enrollment.class));
     }
 
+    private void stubEnrollmentRepositoryToAddActivities(Enrollment targetEnrollment) {
+        when(enrollmentRepo.enroll(eq(customer), anyList())).thenAnswer(invocation -> {
+            List<ActivityClass> activities = invocation.getArgument(1);
+            targetEnrollment.addActivities(activities);
+            return targetEnrollment;
+        });
+    }
+
     private ActivityClass createActivityClass(int activityCapacity) {
-        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0),LocalTime.of(11, 0));
+        Schedule schedule = new Schedule(classDays, LocalTime.of(10, 0), LocalTime.of(11, 0));
         Room room = new Room(UUID.randomUUID(), "Room A", RoomType.GYM, 10);
         Sport sport = new Sport(UUID.randomUUID(), "Basketball", RoomType.GYM);
         Trainer trainer = new Trainer(UUID.randomUUID(), "John Doe");

@@ -1,14 +1,23 @@
-
-
 ### Register
 POST http://localhost:8080/api/v1/register
 Content-Type: application/json
 
 {
+  "name": "Ana",
+  "lastname": "Souza",
   "email": "ana.souza@example.com",
-  "password": "ana@1234567",
-  "name":"ana",
-  "lastname": "souza"
+  "password": "Senha@123",
+  "cpf": "529.982.247-25",
+  "birthdate": "1998-05-12",
+  "gender": "FEMALE",
+  "tel": "16999990001",
+  "address": {
+    "cep": "13560-001",
+    "number": "100",
+    "street": "Rua das Flores",
+    "city": "São Carlos",
+    "state": "SP"
+  }
 }
 
 ### Authenticate
@@ -17,6 +26,5 @@ Content-Type: application/json
 
 {
   "username": "ana.souza@example.com",
-  "password": "ana@1234567"
+  "password": "Senha@123"
 }
-

@@ -10,9 +10,9 @@ import java.util.UUID;
 
 public interface EnrollmentRepository {
     Enrollment save(Enrollment enrollment);
+    Enrollment enroll(Customer customer, List<ActivityClass> activities);
     List<EnrollmentActivity> findEnrolledActivitiesByActivityClass(ActivityClass activityClass);
     Optional<Enrollment> findByCustomer(Customer customer);
-    Optional<Customer> findCustomerById(UUID customerId);
     List<Enrollment> findEnrollmentsByActivityClass(ActivityClass activityClass);
     List<EnrollmentActivity> findActiveEnrollmentActivitiesByStartDateBetween(
             LocalDate startDate,

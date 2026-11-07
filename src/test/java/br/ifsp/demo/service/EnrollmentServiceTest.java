@@ -1,24 +1,24 @@
-
 package br.ifsp.demo.service;
 
 import br.ifsp.demo.domain.model.Customer;
 import br.ifsp.demo.domain.model.Enrollment;
-import br.ifsp.demo.domain.model.ActivityClass;
-import br.ifsp.demo.domain.repository.ActivityClassRepository;
+import br.ifsp.demo.domain.repository.CustomerRepository;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.domain.usecase.CancelEnrollmentActivityUseCase;
 import br.ifsp.demo.domain.usecase.EnrollCustomerUseCase;
+import br.ifsp.demo.exception.EnrollmentNotFoundException;
 import br.ifsp.demo.exception.ResourceNotFoundException;
-
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,10 +31,10 @@ import static org.mockito.Mockito.*;
 class EnrollmentServiceTest {
 
     @Mock
-    private EnrollmentRepository enrollmentRepository;
+    private CustomerRepository customerRepository;
 
     @Mock
-    private ActivityClassRepository activityClassRepository;
+    private EnrollmentRepository enrollmentRepository;
 
     @Mock
     private EnrollCustomerUseCase enrollUseCase;
@@ -43,144 +43,197 @@ class EnrollmentServiceTest {
     private CancelEnrollmentActivityUseCase cancelUseCase;
 
     @InjectMocks
-    private EnrollmentService service;
+    private EnrollmentService sut;
 
-    private UUID customerId;
     private UUID authenticatedUserId;
-    private UUID activityClassId;
-    private UUID enrollmentActivityId;
-
     private Customer customer;
-    private ActivityClass activityClass;
-    private Enrollment enrollment;
-
-    private LocalDate endDate;
 
     @BeforeEach
     void setUp() {
-        customerId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
         authenticatedUserId = UUID.randomUUID();
-        activityClassId = UUID.randomUUID();
-        enrollmentActivityId = UUID.randomUUID();
-
-        customer = mock(Customer.class);
-        activityClass = mock(ActivityClass.class);
-        enrollment = mock(Enrollment.class);
-
-        endDate = LocalDate.of(2026, 11, 6);
+        customer = createCustomer(customerId, authenticatedUserId);
     }
 
-
     @Test
-    void shouldEnrollCustomerWhenCustomerAndActivitiesExist() {
-        List<UUID> activityClassIds = List.of(activityClassId);
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should enroll the customer associated with the authenticated user")
+    void shouldEnrollCustomerAssociatedWithAuthenticatedUser() {
+        List<UUID> activityClassIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+        Enrollment expectedEnrollment = new Enrollment(customer);
 
-        when(enrollmentRepository.findCustomerById(customerId))
+        when(customerRepository.findByUserId(authenticatedUserId))
                 .thenReturn(Optional.of(customer));
-
-        when(activityClassRepository.findById(activityClassId))
-                .thenReturn(activityClass);
-
         when(enrollUseCase.enroll(customer, activityClassIds))
-                .thenReturn(enrollment);
+                .thenReturn(expectedEnrollment);
 
-        Enrollment result = service.enroll(
-                customerId, authenticatedUserId, activityClassIds
-        );
+        Enrollment result = sut.enroll(authenticatedUserId, activityClassIds);
 
-        assertThat(result).isEqualTo(enrollment);
+        assertThat(result).isSameAs(expectedEnrollment);
 
-        verify(enrollmentRepository).findCustomerById(customerId);
-        verify(activityClassRepository).findById(activityClassId);
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verify(customerRepository, never()).findById(any(UUID.class));
         verify(enrollUseCase).enroll(customer, activityClassIds);
+        verifyNoInteractions(enrollmentRepository, cancelUseCase);
     }
 
     @Test
-    void shouldThrowExceptionWhenCustomerNotFoundDuringEnrollment() {
-        List<UUID> activityClassIds = List.of(activityClassId);
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when the authenticated user has no customer profile")
+    void shouldRejectEnrollmentWhenAuthenticatedUserHasNoCustomerProfile() {
+        List<UUID> activityClassIds = List.of(UUID.randomUUID());
 
-        when(enrollmentRepository.findCustomerById(customerId))
+        when(customerRepository.findByUserId(authenticatedUserId))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.enroll(customerId, authenticatedUserId, activityClassIds)).isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Customer not found");
+        assertThatThrownBy(() -> sut.enroll(authenticatedUserId, activityClassIds))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("No student profile is associated with the authenticated user.");
 
-        verifyNoInteractions(activityClassRepository);
-        verifyNoInteractions(enrollUseCase);
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verifyNoInteractions(enrollUseCase, enrollmentRepository, cancelUseCase);
     }
 
     @Test
-    void shouldThrowExceptionWhenActivityClassNotFoundDuringEnrollment() {
-        List<UUID> activityClassIds = List.of(activityClassId);
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment when authenticated user ID is null")
+    void shouldRejectEnrollmentWhenAuthenticatedUserIdIsNull() {
+        assertThatThrownBy(() -> sut.enroll(null, List.of(UUID.randomUUID())))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Authenticated user could not be identified.");
 
-        when(enrollmentRepository.findCustomerById(customerId))
-                .thenReturn(Optional.of(customer));
-
-        when(activityClassRepository.findById(activityClassId))
-                .thenReturn(null);
-
-        assertThatThrownBy(() -> service.enroll(customerId, authenticatedUserId, activityClassIds)).isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Activity class not found");
-
-        verify(enrollmentRepository).findCustomerById(customerId);
-        verify(activityClassRepository).findById(activityClassId);
-        verifyNoInteractions(enrollUseCase);
+        verifyNoInteractions(customerRepository, enrollmentRepository, enrollUseCase, cancelUseCase);
     }
 
     @Test
-    void shouldValidateAllActivityClassesBeforeEnrollment() {
-        UUID secondActivityClassId = UUID.randomUUID();
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should return the enrollment associated with the authenticated user")
+    void shouldFindEnrollmentForAuthenticatedUser() {
+        Enrollment expectedEnrollment = new Enrollment(customer);
 
-        List<UUID> activityClassIds = List.of(activityClassId, secondActivityClassId);
-
-        when(enrollmentRepository.findCustomerById(customerId))
+        when(customerRepository.findByUserId(authenticatedUserId))
                 .thenReturn(Optional.of(customer));
+        when(enrollmentRepository.findByCustomer(customer))
+                .thenReturn(Optional.of(expectedEnrollment));
 
-        when(activityClassRepository.findById(activityClassId))
-                .thenReturn(activityClass);
+        Enrollment result = sut.findMyEnrollment(authenticatedUserId);
 
-        when(activityClassRepository.findById(secondActivityClassId))
-                .thenReturn(activityClass);
+        assertThat(result).isSameAs(expectedEnrollment);
 
-        when(enrollUseCase.enroll(customer, activityClassIds))
-                .thenReturn(enrollment);
-
-        Enrollment result = service.enroll(
-                customerId, authenticatedUserId, activityClassIds
-        );
-
-        assertThat(result).isEqualTo(enrollment);
-
-        verify(activityClassRepository).findById(activityClassId);
-        verify(activityClassRepository).findById(secondActivityClassId);
-        verify(enrollUseCase).enroll(customer, activityClassIds);
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verify(enrollmentRepository).findByCustomer(customer);
+        verifyNoInteractions(enrollUseCase, cancelUseCase);
     }
 
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment lookup when the customer has no enrollment")
+    void shouldRejectEnrollmentLookupWhenCustomerHasNoEnrollment() {
+        when(customerRepository.findByUserId(authenticatedUserId))
+                .thenReturn(Optional.of(customer));
+        when(enrollmentRepository.findByCustomer(customer))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sut.findMyEnrollment(authenticatedUserId))
+                .isInstanceOf(EnrollmentNotFoundException.class)
+                .hasMessage("No enrollment was found for the authenticated student.");
+
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verify(enrollmentRepository).findByCustomer(customer);
+        verifyNoInteractions(enrollUseCase, cancelUseCase);
+    }
 
     @Test
-    void shouldCancelEnrollmentActivityWhenCustomerExists() {
-        when(enrollmentRepository.findCustomerById(customerId))
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject enrollment lookup when authenticated user has no customer profile")
+    void shouldRejectEnrollmentLookupWhenAuthenticatedUserHasNoCustomerProfile() {
+        when(customerRepository.findByUserId(authenticatedUserId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> sut.findMyEnrollment(authenticatedUserId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("No student profile is associated with the authenticated user.");
+
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verifyNoInteractions(enrollmentRepository, enrollUseCase, cancelUseCase);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should cancel an activity from the authenticated customer's enrollment")
+    void shouldCancelActivityForAuthenticatedUser() {
+        UUID enrollmentActivityId = UUID.randomUUID();
+        LocalDate endDate = LocalDate.of(2026, 11, 6);
+        Enrollment expectedEnrollment = new Enrollment(customer);
+
+        when(customerRepository.findByUserId(authenticatedUserId))
                 .thenReturn(Optional.of(customer));
+        when(cancelUseCase.cancelActivity(customer, enrollmentActivityId, endDate))
+                .thenReturn(expectedEnrollment);
 
-        when(cancelUseCase.cancelActivity(customer, enrollmentActivityId, endDate)).thenReturn(enrollment);
+        Enrollment result = sut.cancelActivity(authenticatedUserId, enrollmentActivityId, endDate);
 
-        Enrollment result = service.cancelActivity(customerId, authenticatedUserId, enrollmentActivityId, endDate);
+        assertThat(result).isSameAs(expectedEnrollment);
 
-        assertThat(result).isEqualTo(enrollment);
-
-        verify(enrollmentRepository).findCustomerById(customerId);
-
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verify(customerRepository, never()).findById(any(UUID.class));
         verify(cancelUseCase).cancelActivity(customer, enrollmentActivityId, endDate);
+        verifyNoInteractions(enrollmentRepository, enrollUseCase);
     }
 
     @Test
-    void shouldThrowExceptionWhenCustomerNotFoundDuringCancellation() {
-        when(enrollmentRepository.findCustomerById(customerId))
-                .thenReturn(Optional.empty());
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject cancellation when authenticated user has no customer profile")
+    void shouldRejectCancellationWhenAuthenticatedUserHasNoCustomerProfile() {
+        UUID enrollmentActivityId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> service.cancelActivity(customerId, authenticatedUserId, enrollmentActivityId, endDate))
-                .isInstanceOf(ResourceNotFoundException.class).hasMessageContaining("Customer not found");
+        when(customerRepository.findByUserId(authenticatedUserId)).thenReturn(Optional.empty());
 
-        verifyNoInteractions(cancelUseCase);
+        assertThatThrownBy(() -> sut.cancelActivity(authenticatedUserId, enrollmentActivityId, LocalDate.now()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("No student profile is associated with the authenticated user.");
+
+        verify(customerRepository).findByUserId(authenticatedUserId);
+        verifyNoInteractions(cancelUseCase, enrollmentRepository, enrollUseCase);
+    }
+
+    @Test
+    @Tag("Functional")
+    @Tag("UnitTest")
+    @DisplayName("Should reject cancellation when authenticated user ID is null")
+    void shouldRejectCancellationWhenAuthenticatedUserIdIsNull() {
+        assertThatThrownBy(() -> sut.cancelActivity(
+                null,
+                UUID.randomUUID(),
+                LocalDate.now()
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Authenticated user could not be identified.");
+
+        verifyNoInteractions(customerRepository, enrollmentRepository, enrollUseCase, cancelUseCase);
+    }
+
+    private Customer createCustomer(UUID customerId, UUID userId) {
+        return new Customer(
+                customerId,
+                userId,
+                null,
+                "Ana Souza",
+                null,
+                null,
+                null,
+                "ana@email.com",
+                null,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
     }
 }

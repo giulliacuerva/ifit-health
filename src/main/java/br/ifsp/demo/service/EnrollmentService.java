@@ -1,10 +1,13 @@
 package br.ifsp.demo.service;
 
+import br.ifsp.demo.domain.model.Customer;
 import br.ifsp.demo.domain.model.Enrollment;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
+import br.ifsp.demo.domain.repository.CustomerRepository;
 import br.ifsp.demo.domain.repository.EnrollmentRepository;
 import br.ifsp.demo.domain.usecase.CancelEnrollmentActivityUseCase;
 import br.ifsp.demo.domain.usecase.EnrollCustomerUseCase;
+import br.ifsp.demo.exception.EnrollmentNotFoundException;
 import br.ifsp.demo.exception.ResourceNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -15,41 +18,46 @@ import java.util.UUID;
 
 @Service
 public class EnrollmentService {
+    private final CustomerRepository customerRepository;
     private final EnrollmentRepository enrollmentRepository;
-    private final ActivityClassRepository activityClassRepository;
     private final EnrollCustomerUseCase enrollUseCase;
     private final CancelEnrollmentActivityUseCase cancelUseCase;
 
-    public EnrollmentService(EnrollmentRepository enrollmentRepository,
-                             ActivityClassRepository activityClassRepository,
+    public EnrollmentService(CustomerRepository customerRepository,
+                             EnrollmentRepository enrollmentRepository,
                              EnrollCustomerUseCase enrollUseCase,
                              CancelEnrollmentActivityUseCase cancelUseCase) {
+        this.customerRepository = customerRepository;
         this.enrollmentRepository = enrollmentRepository;
-        this.activityClassRepository = activityClassRepository;
         this.enrollUseCase = enrollUseCase;
         this.cancelUseCase = cancelUseCase;
     }
 
-    public Enrollment enroll(UUID customerId, UUID authenticatedUserId,
-                             List<UUID> activityClassIds) {
-        var customer = enrollmentRepository.findCustomerById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
-
-        for (UUID activityClassId : activityClassIds) {
-            if (activityClassRepository.findById(activityClassId) == null) {
-                throw new ResourceNotFoundException("Activity class not found: " + activityClassId);
-            }
-        }
-
+    public Enrollment enroll(UUID authenticatedUserId, List<UUID> activityClassIds) {
+        Customer customer = findCustomerByAuthenticatedUser(authenticatedUserId);
         return enrollUseCase.enroll(customer, activityClassIds);
     }
 
-    public Enrollment cancelActivity(UUID customerId, UUID authenticatedUserId,
-                                     UUID enrollmentActivityId, LocalDate endDate) {
-        var customer = enrollmentRepository.findCustomerById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
+    public Enrollment findMyEnrollment(UUID authenticatedUserId) {
+        Customer customer = findCustomerByAuthenticatedUser(authenticatedUserId);
+        return enrollmentRepository.findByCustomer(customer)
+                .orElseThrow(() -> new EnrollmentNotFoundException(
+                        "No enrollment was found for the authenticated student."
+                ));
+    }
 
+    public Enrollment cancelActivity(UUID authenticatedUserId, UUID enrollmentActivityId, LocalDate endDate){
+        Customer customer = findCustomerByAuthenticatedUser(authenticatedUserId);
         return cancelUseCase.cancelActivity(customer, enrollmentActivityId, endDate);
     }
 
+    private Customer findCustomerByAuthenticatedUser(UUID authenticatedUserId) {
+        if (authenticatedUserId == null) {
+            throw new IllegalStateException("Authenticated user could not be identified.");
+        }
+        return customerRepository.findByUserId(authenticatedUserId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No student profile is associated with the authenticated user."
+                ));
+    }
 }

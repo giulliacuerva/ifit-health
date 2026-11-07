@@ -6,7 +6,7 @@ import org.junit.platform.suite.api.Suite;
 import org.junit.platform.suite.api.SuiteDisplayName;
 
 @Suite
-@SelectPackages("br.ifsp.demo.domain")
+@SelectPackages({"br.ifsp.demo.domain","br.ifsp.demo.service"})
 @IncludeTags("Functional")
 @SuiteDisplayName("All functional tests")
 public class FunctionalSuiteTests {

@@ -6,10 +6,11 @@ import br.ifsp.demo.domain.model.Room;
 import br.ifsp.demo.domain.model.Schedule;
 import br.ifsp.demo.domain.model.Sport;
 import br.ifsp.demo.domain.model.Trainer;
-import org.springframework.stereotype.Repository;
 import br.ifsp.demo.domain.model.enums.RoomType;
 import br.ifsp.demo.domain.repository.ActivityClassRepository;
+import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,8 +26,6 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Repository
 public class SqliteActivityClassRepository implements ActivityClassRepository {
@@ -38,7 +37,17 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
                 ac.start_time,
                 ac.end_time,
                 ac.capacity AS activity_capacity,
-                ac.monthly_fee,
+                COALESCE(
+                    (
+                        SELECT ap.monthly_fee
+                        FROM activity_prices ap
+                        WHERE ap.activity_id = ac.id
+                          AND date(ap.valid_from) <= date('now', 'localtime')
+                        ORDER BY date(ap.valid_from) DESC, ap.valid_from DESC
+                        LIMIT 1
+                    ),
+                    ac.monthly_fee
+                ) AS monthly_fee,
                 ac.active AS activity_active,
 
                 r.id AS room_id,
@@ -72,46 +81,199 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
             """;
 
 
-    private BigDecimal findCurrentPrice(Connection connection, UUID activityId) throws SQLException {
+    private StoredActivity findStoredActivity(Connection connection, UUID activityId) throws SQLException {
         final String sql = """
-            SELECT monthly_fee
-            FROM activity_class
-            WHERE id = ?;
-            """;
+                SELECT
+                    monthly_fee,
+                    date(created_at, 'localtime') AS created_date
+                FROM activity_class
+                WHERE id = ?;
+                """;
 
-        try (var stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, activityId.toString());
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, activityId.toString());
 
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getBigDecimal("monthly_fee");
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return null;
                 }
 
-                return null;
+                String createdDate = resultSet.getString("created_date");
+                LocalDate createdAt = createdDate == null
+                        ? LocalDate.now()
+                        : LocalDate.parse(createdDate);
+
+                return new StoredActivity(
+                        resultSet.getBigDecimal("monthly_fee"),
+                        createdAt
+                );
             }
         }
     }
 
-    private void savePriceHistory(Connection connection, ActivityClass activityClass) throws SQLException {
+    private void ensureInitialPriceHistory(
+            Connection connection,
+            UUID activityId,
+            StoredActivity storedActivity
+    ) throws SQLException {
         final String sql = """
-            INSERT INTO activity_prices (
-                id,
-                activity_id,
-                monthly_fee,
-                valid_from
-            )
-            VALUES (?, ?, ?, ?);
-            """;
+                SELECT 1
+                FROM activity_prices
+                WHERE activity_id = ?
+                LIMIT 1;
+                """;
 
-        UUID priceHistoryId = UUID.randomUUID();
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, activityId.toString());
 
-        try (var stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, priceHistoryId.toString());
-            stmt.setString(2, activityClass.getId().toString());
-            stmt.setBigDecimal(3, activityClass.getMonthlyFee());
-            stmt.setString(4, LocalDateTime.now().toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return;
+                }
+            }
+        }
 
-            stmt.executeUpdate();
+        insertPriceHistory(
+                connection,
+                activityId,
+                storedActivity.monthlyFee(),
+                storedActivity.createdAt()
+        );
+    }
+
+    private BigDecimal findEffectivePrice(
+            Connection connection,
+            UUID activityId,
+            LocalDate referenceDate,
+            BigDecimal fallbackPrice
+    ) throws SQLException {
+        final String sql = """
+                SELECT monthly_fee
+                FROM activity_prices
+                WHERE activity_id = ?
+                  AND date(valid_from) <= ?
+                ORDER BY date(valid_from) DESC, valid_from DESC
+                LIMIT 1;
+                """;
+
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, activityId.toString());
+            statement.setString(2, referenceDate.toString());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next()
+                        ? resultSet.getBigDecimal("monthly_fee")
+                        : fallbackPrice;
+            }
+        }
+    }
+
+    private BigDecimal findScheduledPrice(
+            Connection connection,
+            UUID activityId,
+            LocalDate effectiveDate
+    ) throws SQLException {
+        final String sql = """
+                SELECT monthly_fee
+                FROM activity_prices
+                WHERE activity_id = ?
+                  AND date(valid_from) = ?
+                ORDER BY valid_from DESC
+                LIMIT 1;
+                """;
+
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, activityId.toString());
+            statement.setString(2, effectiveDate.toString());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next()
+                        ? resultSet.getBigDecimal("monthly_fee")
+                        : null;
+            }
+        }
+    }
+
+    private void insertPriceHistory(
+            Connection connection,
+            UUID activityId,
+            BigDecimal monthlyFee,
+            LocalDate validFrom
+    ) throws SQLException {
+        final String sql = """
+                INSERT INTO activity_prices (
+                    id,
+                    activity_id,
+                    monthly_fee,
+                    valid_from
+                )
+                VALUES (?, ?, ?, ?);
+                """;
+
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setString(1, UUID.randomUUID().toString());
+            statement.setString(2, activityId.toString());
+            statement.setBigDecimal(3, monthlyFee);
+            statement.setString(4, validFrom.toString());
+            statement.executeUpdate();
+        }
+    }
+
+    private void replacePriceHistory(
+            Connection connection,
+            UUID activityId,
+            BigDecimal monthlyFee,
+            LocalDate validFrom
+    ) throws SQLException {
+        final String deleteSql = """
+                DELETE FROM activity_prices
+                WHERE activity_id = ?
+                  AND date(valid_from) = ?;
+                """;
+
+        try (var statement = connection.prepareStatement(deleteSql)) {
+            statement.setString(1, activityId.toString());
+            statement.setString(2, validFrom.toString());
+            statement.executeUpdate();
+        }
+
+        insertPriceHistory(connection, activityId, monthlyFee, validFrom);
+    }
+
+    private void updatePriceHistory(
+            Connection connection,
+            UUID activityId,
+            BigDecimal requestedPrice,
+            BigDecimal currentPrice,
+            LocalDate today
+    ) throws SQLException {
+        LocalDate nextMonthStart = today.withDayOfMonth(1).plusMonths(1);
+        BigDecimal scheduledPrice = findScheduledPrice(
+                connection,
+                activityId,
+                nextMonthStart
+        );
+
+        if (scheduledPrice != null) {
+            if (requestedPrice.compareTo(currentPrice) != 0
+                    && requestedPrice.compareTo(scheduledPrice) != 0) {
+                replacePriceHistory(
+                        connection,
+                        activityId,
+                        requestedPrice,
+                        nextMonthStart
+                );
+            }
+            return;
+        }
+
+        if (requestedPrice.compareTo(currentPrice) != 0) {
+            insertPriceHistory(
+                    connection,
+                    activityId,
+                    requestedPrice,
+                    nextMonthStart
+            );
         }
     }
 
@@ -122,7 +284,7 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
             SELECT monthly_fee
             FROM activity_prices
             WHERE activity_id = ?
-            ORDER BY valid_from;
+            ORDER BY date(valid_from), valid_from;
             """;
 
         try (Connection connection = ConnectionFactory.createConnection();
@@ -146,68 +308,115 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
     @Override
     public ActivityClass save(ActivityClass activityClass) {
         final String sql = """
-            INSERT INTO activity_class (
-                id,
-                sport_id,
-                room_id,
-                coach_id,
-                weekday,
-                start_time,
-                end_time,
-                capacity,
-                monthly_fee,
-                active
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                sport_id = excluded.sport_id,
-                room_id = excluded.room_id,
-                coach_id = excluded.coach_id,
-                weekday = excluded.weekday,
-                start_time = excluded.start_time,
-                end_time = excluded.end_time,
-                capacity = excluded.capacity,
-                monthly_fee = excluded.monthly_fee,
-                active = excluded.active,
-                updated_at = CURRENT_TIMESTAMP;
-            """;
+                INSERT INTO activity_class (
+                    id,
+                    sport_id,
+                    room_id,
+                    coach_id,
+                    weekday,
+                    start_time,
+                    end_time,
+                    capacity,
+                    monthly_fee,
+                    active
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    sport_id = excluded.sport_id,
+                    room_id = excluded.room_id,
+                    coach_id = excluded.coach_id,
+                    weekday = excluded.weekday,
+                    start_time = excluded.start_time,
+                    end_time = excluded.end_time,
+                    capacity = excluded.capacity,
+                    active = excluded.active,
+                    updated_at = CURRENT_TIMESTAMP;
+                """;
+
+        BigDecimal requestedPrice = activityClass.getMonthlyFee();
+        LocalDate today = LocalDate.now();
 
         try (Connection connection = ConnectionFactory.createConnection()) {
             connection.setAutoCommit(false);
 
             try {
-                BigDecimal previousPrice = findCurrentPrice(connection, activityClass.getId());
+                StoredActivity storedActivity = findStoredActivity(
+                        connection,
+                        activityClass.getId()
+                );
 
-                try (var stmt = connection.prepareStatement(sql)) {
-                    stmt.setString(1, activityClass.getId().toString());
-                    stmt.setString(2, activityClass.getSport().getId().toString());
-                    stmt.setString(3, activityClass.getRoom().getId().toString());
-                    stmt.setString(4, activityClass.getTrainer().getId().toString());
-                    stmt.setString(5, serializeWeekdays(activityClass.getSchedule().getWeekdays()));
-                    stmt.setString(6, activityClass.getSchedule().getStartTime().toString());
-                    stmt.setString(7, activityClass.getSchedule().getEndTime().toString());
-                    stmt.setInt(8, activityClass.getCapacity());
-                    stmt.setBigDecimal(9, activityClass.getMonthlyFee());
-                    stmt.setInt(10, activityClass.isActive() ? 1 : 0);
-
-                    stmt.executeUpdate();
+                if (storedActivity != null) {
+                    ensureInitialPriceHistory(
+                            connection,
+                            activityClass.getId(),
+                            storedActivity
+                    );
                 }
 
-                if (previousPrice == null || previousPrice.compareTo(activityClass.getMonthlyFee()) != 0) {
-                    savePriceHistory(connection, activityClass);
+                try (var statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, activityClass.getId().toString());
+                    statement.setString(2, activityClass.getSport().getId().toString());
+                    statement.setString(3, activityClass.getRoom().getId().toString());
+                    statement.setString(4, activityClass.getTrainer().getId().toString());
+                    statement.setString(5, serializeWeekdays(activityClass.getSchedule().getWeekdays()));
+                    statement.setString(6, activityClass.getSchedule().getStartTime().toString());
+                    statement.setString(7, activityClass.getSchedule().getEndTime().toString());
+                    statement.setInt(8, activityClass.getCapacity());
+                    statement.setBigDecimal(9, requestedPrice);
+                    statement.setInt(10, activityClass.isActive() ? 1 : 0);
+                    statement.executeUpdate();
+                }
+
+                if (storedActivity == null) {
+                    insertPriceHistory(
+                            connection,
+                            activityClass.getId(),
+                            requestedPrice,
+                            today
+                    );
+                } else {
+                    BigDecimal currentPrice = findEffectivePrice(
+                            connection,
+                            activityClass.getId(),
+                            today,
+                            storedActivity.monthlyFee()
+                    );
+
+                    updatePriceHistory(
+                            connection,
+                            activityClass.getId(),
+                            requestedPrice,
+                            currentPrice,
+                            today
+                    );
+
+                    BigDecimal effectivePrice = findEffectivePrice(
+                            connection,
+                            activityClass.getId(),
+                            today,
+                            storedActivity.monthlyFee()
+                    );
+
+                    activityClass.edit(
+                            activityClass.getRoom(),
+                            activityClass.getSport(),
+                            activityClass.getTrainer(),
+                            activityClass.getSchedule(),
+                            activityClass.getCapacity(),
+                            effectivePrice
+                    );
                 }
 
                 connection.commit();
-
                 return activityClass;
 
-            } catch (SQLException e) {
+            } catch (SQLException exception) {
                 connection.rollback();
-                throw e;
+                throw exception;
             }
 
-        } catch (SQLException e) {
-            throw new RuntimeException("Error saving activity class", e);
+        } catch (SQLException exception) {
+            throw new RuntimeException("Error saving activity class", exception);
         }
     }
 
@@ -418,6 +627,9 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
                 rs.getBigDecimal("monthly_fee"),
                 rs.getInt("activity_active") == 1
         );
+    }
+
+    private record StoredActivity(BigDecimal monthlyFee, LocalDate createdAt) {
     }
 
     private Address mapTrainerAddress(ResultSet rs) throws SQLException {
