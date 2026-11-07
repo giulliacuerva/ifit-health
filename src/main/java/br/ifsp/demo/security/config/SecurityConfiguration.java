@@ -24,9 +24,14 @@ public class SecurityConfiguration {
     private static final String[] WHITE_LIST_URL = {
             "/api/v1/authenticate",
             "/api/v1/register",
+            "/api/v1/api-docs",
             "/api/v1/api-docs/**",
+            "/api/v1/openapi",
             "/api/v1/openapi/**",
-            "/api/v1/swagger-ui/**"
+            "/api/v1/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**"
     };
 
     private static final String USER = Role.USER.name();
@@ -40,6 +45,8 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me")
+                        .hasAnyAuthority(USER, ADMIN)
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/activity-classes",
                                 "/api/v1/activity-classes/*")
@@ -55,10 +62,12 @@ public class SecurityConfiguration {
                         .hasAuthority(ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/v1/activity-reports")
                         .hasAuthority(ADMIN)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/enrollment")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/me/enrollment")
+                        .hasAuthority(USER)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/me/enrollment")
                         .hasAuthority(USER)
                         .requestMatchers(HttpMethod.DELETE,
-                                "/api/v1/customers/*/enrollment/activities/*")
+                                "/api/v1/me/enrollment/activities/*")
                         .hasAuthority(USER)
                         .requestMatchers(HttpMethod.GET, "/api/v1/hello")
                         .hasAnyAuthority(USER, ADMIN)
@@ -69,6 +78,7 @@ public class SecurityConfiguration {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(it -> it
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                );return http.build();
+                );
+        return http.build();
     }
 }
