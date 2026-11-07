@@ -29,7 +29,7 @@ public class SqliteEnrollmentRepository implements EnrollmentRepository {
 
     @Override
     public Enrollment save(Enrollment enrollment) {
-        try (Connection connection = ConnectionFactory.createConnection()) {
+        try (Connection connection = ConnectionFactory.createImmediateTransactionConnection()) {
             connection.setAutoCommit(false);
 
             try {
@@ -41,38 +41,128 @@ public class SqliteEnrollmentRepository implements EnrollmentRepository {
 
                 connection.commit();
                 return enrollment;
-            } catch (SQLException e) {
-                connection.rollback();
+            } catch (SQLException | RuntimeException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    e.addSuppressed(rollbackException);
+                }
+                if (e instanceof SQLException sqlException) {
+                    throw translatePersistenceException(sqlException);
+                }
                 throw e;
             }
-
         } catch (SQLException e) {
-            throw new RuntimeException("Error saving enrollment", e);
+            throw translatePersistenceException(e);
+        }
+    }
+
+    @Override
+    public Enrollment enroll(Customer customer, List<ActivityClass> activities) {
+        try (Connection connection = ConnectionFactory.createImmediateTransactionConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                Enrollment enrollment = findByCustomer(connection, customer)
+                        .orElseGet(() -> new Enrollment(customer));
+                enrollment.addActivities(activities);
+
+                for (ActivityClass activity : activities) {
+                    int occupied = countActiveEnrollments(connection, activity.getId());
+                    if (occupied >= activity.getCapacity()) {
+                        throw new br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException(
+                                "The activity has no available vacancies: " + activity.getId()
+                        );
+                    }
+                }
+
+                saveEnrollment(connection, enrollment);
+                for (EnrollmentActivity enrollmentActivity : enrollment.getEnrollmentActivities()) {
+                    saveEnrollmentActivity(connection, enrollment.getId(), enrollmentActivity);
+                }
+
+                connection.commit();
+                return enrollment;
+            } catch (SQLException | RuntimeException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    e.addSuppressed(rollbackException);
+                }
+                if (e instanceof SQLException sqlException) {
+                    throw translatePersistenceException(sqlException);
+                }
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw translatePersistenceException(e);
         }
     }
 
     @Override
     public Optional<Enrollment> findByCustomer(Customer customer) {
-        final String sql = "SELECT id, status " +
-                "FROM enrollments " +
-                "WHERE customer_id = ?;";
-
-        try (Connection connection = ConnectionFactory.createConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, customer.getId().toString());
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (!rs.next()) return Optional.empty();
-
-                UUID enrollmentId = UUID.fromString(rs.getString("id"));
-                boolean active = "ACTIVE".equals(rs.getString("status"));
-                List<EnrollmentActivity> enrollmentActivities = findEnrollmentActivitiesByEnrollmentId(enrollmentId);
-
-                return Optional.of(new Enrollment(enrollmentId, customer, enrollmentActivities, active));
-            }
-
+        try (Connection connection = ConnectionFactory.createConnection()) {
+            return findByCustomer(connection, customer);
         } catch (SQLException e) {
             throw new RuntimeException("Error finding enrollment by customer", e);
         }
+    }
+
+    private Optional<Enrollment> findByCustomer(Connection connection, Customer customer)
+            throws SQLException {
+        final String sql = "SELECT id, status FROM enrollments WHERE customer_id = ?;";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, customer.getId().toString());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+
+                UUID enrollmentId = UUID.fromString(rs.getString("id"));
+                boolean active = "ACTIVE".equals(rs.getString("status"));
+                List<EnrollmentActivity> activities =
+                        findEnrollmentActivitiesByEnrollmentId(connection, enrollmentId);
+
+                return Optional.of(new Enrollment(enrollmentId, customer, activities, active));
+            }
+        }
+    }
+
+    private int countActiveEnrollments(Connection connection, UUID activityId)
+            throws SQLException {
+        final String sql = """
+                SELECT COUNT(*)
+                FROM enrollment_activities ea
+                JOIN enrollments e ON e.id = ea.enrollment_id
+                WHERE ea.activity_id = ?
+                  AND ea.status = 'ACTIVE'
+                  AND e.status = 'ACTIVE'
+                """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, activityId.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    private RuntimeException translatePersistenceException(SQLException exception) {
+        String message = exception.getMessage();
+        if (message != null && message.contains("ACTIVITY_CAPACITY_REACHED")) {
+            return new br.ifsp.demo.exception.CapacityIsGreaterThanAcceptedException(
+                    "The activity has no available vacancies."
+            );
+        }
+        if (exception.getErrorCode() == 19 ||
+                (message != null && message.contains("UNIQUE constraint failed"))) {
+            return new IllegalStateException(
+                    "The student already has an active enrollment in this activity.", exception
+            );
+        }
+        return new RuntimeException("Error persisting enrollment", exception);
     }
 
     @Override
@@ -111,7 +201,7 @@ public class SqliteEnrollmentRepository implements EnrollmentRepository {
                 while (rs.next()) {
                     UUID enrollmentId = UUID.fromString(rs.getString("enrollment_id"));
                     Customer customer = mapCustomer(rs);
-                    List<EnrollmentActivity> enrollmentActivities = findEnrollmentActivitiesByEnrollmentId(enrollmentId);
+                    List<EnrollmentActivity> enrollmentActivities = findEnrollmentActivitiesByEnrollmentId(connection, enrollmentId);
                     enrollments.add(new Enrollment(enrollmentId, customer, enrollmentActivities, "ACTIVE".equals(rs.getString("enrollment_status"))));
                 }
             }
@@ -235,43 +325,65 @@ public class SqliteEnrollmentRepository implements EnrollmentRepository {
         }
     }
 
-    private void saveEnrollmentActivity(Connection connection, UUID enrollmentId, EnrollmentActivity enrollmentActivity) throws SQLException {
-        final String sql = "INSERT INTO enrollment_activities (id, enrollment_id, activity_id, monthly_fee, start_date, end_date, status) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET end_date = excluded.end_date, status = excluded.status;";
+    private void saveEnrollmentActivity(Connection connection, UUID enrollmentId,
+                                        EnrollmentActivity enrollmentActivity) throws SQLException {
 
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        final String updateSql = "UPDATE enrollment_activities " +
+                "SET end_date = ?, status = ? WHERE id = ?;";
+
+        try (PreparedStatement stmt = connection.prepareStatement(updateSql)) {
+            if (enrollmentActivity.getEndDate() == null) {
+                stmt.setNull(1, Types.VARCHAR);
+            } else {
+                stmt.setString(1, enrollmentActivity.getEndDate().toString());
+            }
+            stmt.setString(2, enrollmentActivity.isActive() ? "ACTIVE" : "INACTIVE");
+            stmt.setString(3, enrollmentActivity.getId().toString());
+
+            if (stmt.executeUpdate() > 0) {
+                return;
+            }
+        }
+
+        final String insertSql = "INSERT INTO enrollment_activities " +
+                "(id, enrollment_id, activity_id, monthly_fee, start_date, end_date, status) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?);";
+
+        try (PreparedStatement stmt = connection.prepareStatement(insertSql)) {
             stmt.setString(1, enrollmentActivity.getId().toString());
             stmt.setString(2, enrollmentId.toString());
             stmt.setString(3, enrollmentActivity.getActivityClass().getId().toString());
             stmt.setBigDecimal(4, enrollmentActivity.getMonthlyFee());
             stmt.setString(5, enrollmentActivity.getStartDate().toString());
 
-            if (enrollmentActivity.getEndDate() == null) stmt.setNull(6, Types.VARCHAR);
-            else stmt.setString(6, enrollmentActivity.getEndDate().toString());
+            if (enrollmentActivity.getEndDate() == null) {
+                stmt.setNull(6, Types.VARCHAR);
+            } else {
+                stmt.setString(6, enrollmentActivity.getEndDate().toString());
+            }
 
             stmt.setString(7, enrollmentActivity.isActive() ? "ACTIVE" : "INACTIVE");
             stmt.executeUpdate();
         }
     }
 
-    private List<EnrollmentActivity> findEnrollmentActivitiesByEnrollmentId(UUID enrollmentId) {
+    private List<EnrollmentActivity> findEnrollmentActivitiesByEnrollmentId(
+            Connection connection, UUID enrollmentId) throws SQLException {
         final List<EnrollmentActivity> enrollmentActivities = new ArrayList<>();
         final String sql = "SELECT id, activity_id, monthly_fee, start_date, end_date, status " +
-                "FROM enrollment_activities " +
-                "WHERE enrollment_id = ? ORDER BY start_date;";
+                "FROM enrollment_activities WHERE enrollment_id = ? ORDER BY start_date;";
 
-        try (Connection connection = ConnectionFactory.createConnection(); PreparedStatement stmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, enrollmentId.toString());
 
             try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) enrollmentActivities.add(mapEnrollmentActivity(rs));
+                while (rs.next()) {
+                    enrollmentActivities.add(mapEnrollmentActivity(rs));
+                }
             }
-
-            return enrollmentActivities;
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error finding enrollment activities", e);
         }
+
+        return enrollmentActivities;
     }
 
     private EnrollmentActivity mapEnrollmentActivity(ResultSet rs) throws SQLException {

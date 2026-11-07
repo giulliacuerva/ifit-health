@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface EnrollmentRepository {
     Enrollment save(Enrollment enrollment);
+    Enrollment enroll(Customer customer, List<ActivityClass> activities);
     List<EnrollmentActivity> findEnrolledActivitiesByActivityClass(ActivityClass activityClass);
     Optional<Enrollment> findByCustomer(Customer customer);
     List<Enrollment> findEnrollmentsByActivityClass(ActivityClass activityClass);
