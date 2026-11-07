@@ -1,9 +1,5 @@
 package br.ifsp.demo.persistence.sqlite;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -267,6 +263,11 @@ public class DatabaseBuilder {
         CREATE INDEX IF NOT EXISTS idx_enrollment_activities_activity_status
         ON enrollment_activities(activity_id, status)
         """,
+                """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_enrollment_active_activity_unique
+        ON enrollment_activities(enrollment_id, activity_id)
+        WHERE status = 'ACTIVE'
+        """,
 
                 """
         CREATE INDEX IF NOT EXISTS idx_enrollment_activities_enrollment_start
@@ -294,6 +295,46 @@ public class DatabaseBuilder {
             for (String index : indexes) {
                 statement.execute(index);
             }
+
+            statement.execute("""
+                    CREATE TRIGGER IF NOT EXISTS trg_enrollment_activity_capacity_insert
+                    BEFORE INSERT ON enrollment_activities
+                    WHEN NEW.status = 'ACTIVE'
+                    BEGIN
+                        SELECT CASE WHEN (
+                            SELECT COUNT(*)
+                            FROM enrollment_activities ea
+                            JOIN enrollments e ON e.id = ea.enrollment_id
+                            WHERE ea.activity_id = NEW.activity_id
+                              AND ea.status = 'ACTIVE'
+                              AND e.status = 'ACTIVE'
+                        ) >= (
+                            SELECT capacity FROM activity_class WHERE id = NEW.activity_id
+                        )
+                        THEN RAISE(ABORT, 'ACTIVITY_CAPACITY_REACHED') END;
+                    END;
+                    """);
+
+            statement.execute("""
+                    CREATE TRIGGER IF NOT EXISTS trg_enrollment_activity_capacity_update
+                    BEFORE UPDATE OF status, activity_id, enrollment_id ON enrollment_activities
+                    WHEN NEW.status = 'ACTIVE'
+                      AND (OLD.status <> NEW.status OR OLD.activity_id <> NEW.activity_id OR OLD.enrollment_id <> NEW.enrollment_id)
+                    BEGIN
+                        SELECT CASE WHEN (
+                            SELECT COUNT(*)
+                            FROM enrollment_activities ea
+                            JOIN enrollments e ON e.id = ea.enrollment_id
+                            WHERE ea.activity_id = NEW.activity_id
+                              AND ea.status = 'ACTIVE'
+                              AND e.status = 'ACTIVE'
+                              AND ea.id <> OLD.id
+                        ) >= (
+                            SELECT capacity FROM activity_class WHERE id = NEW.activity_id
+                        )
+                        THEN RAISE(ABORT, 'ACTIVITY_CAPACITY_REACHED') END;
+                    END;
+                    """);
         }
     }
 
