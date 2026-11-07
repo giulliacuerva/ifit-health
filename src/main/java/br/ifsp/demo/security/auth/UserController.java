@@ -10,10 +10,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(path = "/api/v1")
@@ -22,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final AuthenticationService authenticationService;
+    private final AuthenticationInfoService authenticationInfoService;
 
     @Operation(
             summary = "Register a new student account.",
@@ -62,6 +60,36 @@ public class UserController {
     @PostMapping("/authenticate")
     public ResponseEntity<AuthResponse> authenticate(@RequestBody AuthRequest request) {
         AuthResponse response = authenticationService.authenticate(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Returns the authenticated user's information.",
+            description = """
+                    Retrieves the authenticated user's account information,
+                    including the associated customer ID when available.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Authenticated user information returned.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(
+                                    implementation = AuthenticatedUserResponse.class
+                            )
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "User is not authenticated."
+            )
+    })
+    @GetMapping("/auth/me")
+    public ResponseEntity<AuthenticatedUserResponse> getAuthenticatedUser() {
+        AuthenticatedUserResponse response = authenticationInfoService.getAuthenticatedUserInfo();
+
         return ResponseEntity.ok(response);
     }
 }

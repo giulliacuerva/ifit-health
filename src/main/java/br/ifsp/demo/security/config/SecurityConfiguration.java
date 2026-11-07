@@ -40,6 +40,11 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/auth/me"
+                        )
+                        .hasAnyAuthority(USER, ADMIN)
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/activity-classes",
                                 "/api/v1/activity-classes/*")
