@@ -21,6 +21,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.UUID;
@@ -60,9 +61,17 @@ public class ActivityClassController {
     public List<ActivityClassAvailabilityResponse> findAll(
             @Parameter(description = "When true, returns only active activities; when false, only inactive ones.",
                     example = "true")
-            @RequestParam(value = "active", required = false) Boolean active
+            @RequestParam(value = "active", required = false) Boolean active,
+            Authentication authentication
     ) {
-        return activityClassQueryService.findAll(active);
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ADMIN")
+                );
+
+        return activityClassQueryService.findAll(active, isAdmin);
     }
 
     @GetMapping("/{id}")
@@ -72,15 +81,27 @@ public class ActivityClassController {
                     content = @Content(schema = @Schema(implementation = ActivityClassResponse.class))),
             @ApiResponse(responseCode = "401", description = "Authentication is required."),
             @ApiResponse(responseCode = "403", description = "The authenticated profile is not allowed to access activities."),
-            @ApiResponse(responseCode = "404", description = "Activity class not found.",
-                    content = @Content(schema = @Schema(implementation = br.ifsp.demo.exception.ApiException.class)))
+            @ApiResponse(responseCode = "404", description = "Activity class not found.")
     })
     public ActivityClassResponse findById(
             @Parameter(name = "id", description = "Activity class UUID.", required = true,
                     example = "550e8400-e29b-41d4-a716-446655440000")
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            Authentication authentication
     ) {
+
         var activity = activityClassService.findById(id);
+
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ADMIN")
+                );
+
+        if (isAdmin) {
+            var latestPrice = activityClassQueryService.findLatestPrice(id, activity.getMonthlyFee());
+            return ActivityClassResponse.from(activity, latestPrice);
+        }
         return ActivityClassResponse.from(activity);
     }
 
@@ -143,7 +164,9 @@ public class ActivityClassController {
                     request.monthlyFee()
             );
 
-            return ResponseEntity.ok(ActivityClassResponse.from(updatedActivity));
+            return ResponseEntity.ok(
+                    ActivityClassResponse.from(updatedActivity, request.monthlyFee())
+            );
         } catch (ActivityScheduleConflictException exception) {
             var affectedStudents = scheduleConflictQueryService.findAffectedStudents(
                     id,

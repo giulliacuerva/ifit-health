@@ -168,6 +168,37 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
         }
     }
 
+    public BigDecimal findLatestPrice(
+            UUID activityId,
+            BigDecimal fallbackPrice
+    ) {
+        final String sql = """
+            SELECT monthly_fee
+            FROM activity_prices
+            WHERE activity_id = ?
+            ORDER BY date(valid_from) DESC, valid_from DESC
+            LIMIT 1;
+            """;
+
+        try (Connection connection = ConnectionFactory.createConnection();
+             var statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, activityId.toString());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next()
+                        ? resultSet.getBigDecimal("monthly_fee")
+                        : fallbackPrice;
+            }
+
+        } catch (SQLException exception) {
+            throw new RuntimeException(
+                    "Error finding latest activity price",
+                    exception
+            );
+        }
+    }
+
     private BigDecimal findScheduledPrice(
             Connection connection,
             UUID activityId,
@@ -308,30 +339,31 @@ public class SqliteActivityClassRepository implements ActivityClassRepository {
     @Override
     public ActivityClass save(ActivityClass activityClass) {
         final String sql = """
-                INSERT INTO activity_class (
-                    id,
-                    sport_id,
-                    room_id,
-                    coach_id,
-                    weekday,
-                    start_time,
-                    end_time,
-                    capacity,
-                    monthly_fee,
-                    active
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    sport_id = excluded.sport_id,
-                    room_id = excluded.room_id,
-                    coach_id = excluded.coach_id,
-                    weekday = excluded.weekday,
-                    start_time = excluded.start_time,
-                    end_time = excluded.end_time,
-                    capacity = excluded.capacity,
-                    active = excluded.active,
-                    updated_at = CURRENT_TIMESTAMP;
-                """;
+        INSERT INTO activity_class (
+            id,
+            sport_id,
+            room_id,
+            coach_id,
+            weekday,
+            start_time,
+            end_time,
+            capacity,
+            monthly_fee,
+            active
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            sport_id = excluded.sport_id,
+            room_id = excluded.room_id,
+            coach_id = excluded.coach_id,
+            weekday = excluded.weekday,
+            start_time = excluded.start_time,
+            end_time = excluded.end_time,
+            capacity = excluded.capacity,
+            monthly_fee = excluded.monthly_fee,
+            active = excluded.active,
+            updated_at = CURRENT_TIMESTAMP;
+        """;
 
         BigDecimal requestedPrice = activityClass.getMonthlyFee();
         LocalDate today = LocalDate.now();
