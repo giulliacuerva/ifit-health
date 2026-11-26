@@ -195,3 +195,33 @@ A autenticação identifica o perfil do usuário e direciona cada pessoa para su
 ```
 
 O fluxo mantém as responsabilidades separadas por perfil, enquanto atividades, disponibilidade de vagas, matrículas e informações utilizadas nos relatórios permanecem integradas.
+
+---
+
+## 7. Testes de integração e de sistema (UI)
+
+Os testes ficam em `ifit-health/src/test/java/br/ifsp/demo`:
+
+| Pacote | Tags | Conteúdo |
+|---|---|---|
+| `integration/api` | `ApiTest`, `IntegrationTest` | Endpoints REST: códigos de retorno e payload com entradas válidas e inválidas (RestAssured) |
+| `integration/persistence` | `PersistenceTest`, `IntegrationTest` | Queries, restrições (UNIQUE, CHECK, FK), agregações (COUNT) e transações no SQLite |
+| `ui` | `UiTest` | Todas as telas com Selenium + Page Object (`ui/pages`) e dados gerados com Faker |
+| `support` | — | Classes utilitárias: snapshot do banco, fixtures JDBC, dados iniciais e Faker |
+
+Os testes **não alteram o `database.db`**: o Maven copia o banco para `target/test-workdir` e cada teste restaura os dados originais ao terminar.
+
+Na pasta `ifit-health` (Java 21):
+
+```powershell
+.\mvnw.cmd test                              # unitários + integração (+ UI, se o front estiver rodando)
+.\mvnw.cmd test "-Dtest=ApiSuiteTests"       # somente API
+.\mvnw.cmd test "-Dtest=PersistenceSuiteTests"
+.\mvnw.cmd test "-Dtest=IntegrationSuiteTests"
+.\mvnw.cmd test "-Dtest=UiSuiteTests"        # somente UI
+```
+
+Para os testes de UI, deixe o front-end rodando (`npm run dev` em `ifit-front`, porta 3000) e tenha o Google Chrome instalado. O back-end é iniciado pelos próprios testes em uma porta aleatória. Se o front não estiver rodando, os testes de UI são ignorados.
+
+- `-Dui.headless=false` abre o navegador para acompanhar a execução.
+- `-Dui.baseUrl=http://localhost:3000` muda o endereço do front-end.

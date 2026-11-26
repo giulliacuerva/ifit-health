@@ -191,7 +191,37 @@
                         -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
                         -Xshare:off
                     </argLine>
+                    <workingDirectory>${project.build.directory}/test-workdir</workingDirectory>
+                    <excludes>
+                        <exclude>**/*SuiteTests.java</exclude>
+                    </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-test-database</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/test-workdir</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}</directory>
+                                    <includes>
+                                        <include>database.db</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
